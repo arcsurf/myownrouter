@@ -1,6 +1,6 @@
 #!/bin/sh
 # Servicios opcionales apagados hasta que el usuario los active desde la web.
-for s in tailscale adguardhome tor zerotier openvpn ksmbd miniupnpd mwan3 sqm ttyd; do
+for s in tailscale adguardhome tor zerotier openvpn ksmbd miniupnpd mwan3 sqm ttyd; do  # mantener en sync con init.d/myownrouter-wifi
 	[ -x /etc/init.d/$s ] && /etc/init.d/$s disable 2>/dev/null
 done
 uci -q set zerotier.global.enabled='0'

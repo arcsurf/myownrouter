@@ -1,0 +1,6 @@
+/etc/openvpn/
+/etc/adguardhome/
+/etc/tor/torrc
+/etc/tor/torrc.myownrouter
+/etc/tailscale/
+/etc/dropbear/

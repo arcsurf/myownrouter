@@ -5,6 +5,7 @@
 # con una contraseña propia (PPSK) que asigna la VLAN 'guest' (ver backend).
 # La clave principal también va como wifi-station: con sae_password_file
 # hostapd ignora wpa_passphrase para SAE.
+[ "$(uci -q get myownrouter.state.wifi_done)" = 1 ] && exit 0
 i=0
 while [ ! -e /sys/class/ieee80211/phy0 ] && [ $i -lt 60 ]; do sleep 2; i=$((i+1)); done
 [ -e /sys/class/ieee80211/phy0 ] || { logger -t myownrouter "sin radio WiFi"; exit 0; }
@@ -17,9 +18,11 @@ fi
 [ -n "$radio" ] || exit 0
 
 # borrar ifaces autogeneradas
-for s in $(uci -q show wireless | sed -n 's/^wireless\.\([^.]*\)=wifi-iface$/\1/p'); do uci -q delete wireless.$s; done
+for s in $(uci -q show wireless | sed -n 's/^wireless\.\([^.]*\)=wifi-\(iface\|station\|vlan\)$/\1/p'); do uci -q delete wireless.$s; done
 
 mac=$(cat /sys/class/ieee80211/phy0/macaddress 2>/dev/null | tr -d : | tail -c 5 | tr a-f A-F)
+# clave aleatoria (la red queda apagada hasta que el asistente defina la definitiva)
+key=$(tr -dc 'A-Za-z0-9' </dev/urandom 2>/dev/null | head -c 12)
 uci -q batch <<UCI
 set wireless.$radio.country='AR'
 set wireless.$radio.band='5g'
@@ -33,12 +36,14 @@ set wireless.main.mode='ap'
 set wireless.main.network='lan'
 set wireless.main.ssid='MyOwnRouter-$mac'
 set wireless.main.encryption='sae-mixed'
-set wireless.main.key='myownrouter-$mac'
+set wireless.main.key='$key'
 set wireless.main.disabled='1'
 set wireless.main_sta=wifi-station
 set wireless.main_sta.iface='main'
-set wireless.main_sta.key='myownrouter-$mac'
+set wireless.main_sta.key='$key'
 commit wireless
 UCI
-mkdir -p /etc/myownrouter && touch /etc/myownrouter/.wifi-done
+uci -q set myownrouter.state=state
+uci -q set myownrouter.state.wifi_done=1
+uci -q commit myownrouter
 wifi reload

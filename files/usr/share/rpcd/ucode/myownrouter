@@ -388,7 +388,8 @@ function vpn_list(u) {
 	});
 	u.foreach('openvpn', 'openvpn', s => {
 		if (!match(s['.name'], /^ovc_/)) return;
-		let pid = trim(sh(`pgrep -f ${q('openvpn.*' + s['.name'])} | head -1`));
+		// '[o]penvpn' so pgrep does not match the shell running this very command
+		let pid = trim(sh(`pgrep -f ${q('[o]penvpn.*' + s['.name'])} | head -1`));
 		let up = access(`/sys/class/net/tun_${substr(s['.name'], 4)}`) != null;
 		push(res, { id: s['.name'], type: 'openvpn', name: u.get('myownrouter', s['.name'], 'label') ?? substr(s['.name'], 4),
 			enabled: s.enabled == '1', up: up, running: pid != '' });

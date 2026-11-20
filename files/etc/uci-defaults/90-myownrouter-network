@@ -4,6 +4,8 @@
 # - LAN  = el resto de NICs (puertos físicos pasados por PCI) + WiFi.
 # - Guest = red de invitados aislada.
 
+# Solo la primera vez: la marca vive en UCI para sobrevivir a un sysupgrade.
+[ "$(uci -q get myownrouter.state.network_done)" = 1 ] && exit 0
 [ -f /etc/myownrouter/.network-done ] && exit 0
 
 LAN_IP=192.168.20.1
@@ -125,6 +127,7 @@ set system.@system[0].timezone='<-03>3'
 commit system
 EOF
 
-mkdir -p /etc/myownrouter
-touch /etc/myownrouter/.network-done
+uci -q set myownrouter.state=state
+uci -q set myownrouter.state.network_done=1
+uci -q commit myownrouter
 exit 0
