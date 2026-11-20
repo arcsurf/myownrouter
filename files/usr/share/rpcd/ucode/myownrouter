@@ -839,14 +839,16 @@ const methods = {
 			if (!a.ssid) return fail('Falta el SSID');
 			let enc = a.encryption || 'psk2';
 			if (!(enc in ['none', 'psk', 'psk2', 'psk-mixed', 'sae', 'sae-mixed'])) return fail('Cifrado inválido');
-			if (enc != 'none' && length(a.key ?? '') < 8) return fail('Contraseña inválida');
+			let oldkey = u.get('wireless', 'wwan', 'key');
+			if (enc != 'none' && length(a.key ?? '') < 8 && !(a.key == '' && oldkey)) return fail('Contraseña inválida');
 			u.set('wireless', 'wwan', 'wifi-iface');
 			u.set('wireless', 'wwan', 'device', radio);
 			u.set('wireless', 'wwan', 'mode', 'sta');
 			u.set('wireless', 'wwan', 'network', 'wwan');
 			u.set('wireless', 'wwan', 'ssid', a.ssid);
 			u.set('wireless', 'wwan', 'encryption', enc);
-			if (enc != 'none') u.set('wireless', 'wwan', 'key', a.key); else u.delete('wireless', 'wwan', 'key');
+			if (enc == 'none') u.delete('wireless', 'wwan', 'key');
+			else if (a.key) u.set('wireless', 'wwan', 'key', a.key);
 			if (a.bssid && valid_mac(a.bssid)) u.set('wireless', 'wwan', 'bssid', lc(a.bssid)); else u.delete('wireless', 'wwan', 'bssid');
 			u.set('wireless', 'wwan', 'disabled', '0');
 			// single radio: AP must live on the upstream band/channel
@@ -892,6 +894,7 @@ const methods = {
 				mwan3: '/etc/init.d/mwan3 enable; /etc/init.d/mwan3 restart',
 				ipv6: '/etc/init.d/network reload; /etc/init.d/odhcpd restart',
 				openvpn: '/etc/init.d/openvpn restart',
+				samba_prepare: 'd=$(uci -q get ksmbd.mor.path); [ -n "$d" ] && mkdir -p "$d" && chmod 777 "$d"',
 				cron: '',
 			};
 			let c = cmds[req.args.what];
