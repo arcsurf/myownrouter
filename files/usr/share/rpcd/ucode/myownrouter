@@ -1,0 +1,1477 @@
+// MyOwnRouter backend: ubus object "myownrouter" (loaded by rpcd-mod-ucode).
+// Simple settings are edited by the web UI through the standard "uci" ubus
+// object; this plugin implements the composite operations.
+// SPDX-License-Identifier: GPL-2.0-only
+
+'use strict';
+
+import { readfile, writefile, popen, access, unlink, stat, glob, mkdir, lsdir } from 'fs';
+import { cursor } from 'uci';
+import { connect } from 'ubus';
+import zoneinfo from 'luci.zoneinfo';
+
+const STATE_DIR = '/etc/myownrouter';
+const RUN_DIR = '/tmp/myownrouter';
+const UPLOAD = '/tmp/myownrouter-upload.bin';
+
+function q(s) {
+	return "'" + replace(`${s ?? ''}`, "'", "'\\''") + "'";
+}
+
+function sh(cmd) {
+	let p = popen(cmd + ' 2>/dev/null');
+	if (!p) return '';
+	let out = p.read('all') ?? '';
+	p.close();
+	return out;
+}
+
+// Run something detached so the RPC answers before services restart.
+function bg(cmd) {
+	system(`( sleep 1; ${cmd} ) >/dev/null 2>&1 </dev/null &`);
+}
+
+function ok(extra) {
+	let r = { ok: true };
+	for (let k, v in extra) r[k] = v;
+	return r;
+}
+
+function fail(msg) {
+	return { ok: false, error: msg };
+}
+
+function valid_mac(m) {
+	return match(m ?? '', /^[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}$/) != null;
+}
+
+function valid_ip4(ip) {
+	let m = match(ip ?? '', /^([0-9]+)\.([0-9]+)\.([0-9]+)\.([0-9]+)$/);
+	if (!m) return false;
+	for (let i = 1; i <= 4; i++) if (+m[i] > 255) return false;
+	return true;
+}
+
+function valid_name(n) {
+	return match(n ?? '', /^[A-Za-z0-9_]{1,15}$/) != null;
+}
+
+function ubus_call(obj, method, args) {
+	let ub = connect();
+	if (!ub) return null;
+	let r = ub.call(obj, method, args ?? {});
+	ub.disconnect();
+	return r;
+}
+
+function read_int(path) {
+	let s = readfile(path);
+	return s ? +trim(s) : 0;
+}
+
+function password_set() {
+	let sh_ = readfile('/etc/shadow') ?? '';
+	let m = match(sh_, /(^|\n)root:([^:]*):/);
+	return m != null && m[2] != '' && m[2] != '*' && m[2] != '!';
+}
+
+function radio_name(u) {
+	let r = null;
+	u.foreach('wireless', 'wifi-device', s => { if (!r) r = s['.name']; });
+	return r;
+}
+
+function ap_ifname() {
+	let st = ubus_call('network.wireless', 'status') ?? {};
+	for (let rn, rd in st)
+		for (let i in rd.interfaces ?? [])
+			if (i.section == 'main' && i.ifname) return i.ifname;
+	return null;
+}
+
+function sta_ifname() {
+	let st = ubus_call('network.wireless', 'status') ?? {};
+	for (let rn, rd in st)
+		for (let i in rd.interfaces ?? [])
+			if (i.section == 'wwan' && i.ifname) return i.ifname;
+	return null;
+}
+
+function iface_status(name) {
+	let s = ubus_call(`network.interface.${name}`, 'status');
+	if (!s) return null;
+	let a = s['ipv4-address']?.[0];
+	let gw = null;
+	for (let r in s.route ?? []) if (r.target == '0.0.0.0') gw = r.nexthop;
+	let dev = s.l3_device ?? s.device;
+	return {
+		up: s.up, proto: s.proto, uptime: s.uptime ?? 0, device: dev,
+		ipaddr: a?.address, mask: a?.mask, gateway: gw,
+		dns: s['dns-server'] ?? [],
+		ip6: map(s['ipv6-address'] ?? [], x => x.address),
+		rx_bytes: dev ? read_int(`/sys/class/net/${dev}/statistics/rx_bytes`) : 0,
+		tx_bytes: dev ? read_int(`/sys/class/net/${dev}/statistics/tx_bytes`) : 0,
+		mac: dev ? trim(readfile(`/sys/class/net/${dev}/address`) ?? '') : null,
+	};
+}
+
+function leases() {
+	let res = {};
+	for (let l in split(readfile('/tmp/dhcp.leases') ?? '', '\n')) {
+		let f = split(l, ' ');
+		if (length(f) < 4) continue;
+		res[lc(f[1])] = { expires: +f[0], mac: lc(f[1]), ip: f[2], hostname: f[3] == '*' ? null : f[3] };
+	}
+	return res;
+}
+
+function neighbors() {
+	let res = {};
+	for (let l in split(sh('ip -4 neigh show'), '\n')) {
+		let m = match(l, /^([0-9.]+) dev (\S+) lladdr ([0-9a-f:]+) (.*)$/);
+		if (!m) continue;
+		res[m[3]] = { ip: m[1], dev: m[2], state: trim(m[4]) };
+	}
+	return res;
+}
+
+// NOTE: never call the "iwinfo", "uci", "file" or "session" ubus objects from
+// here: they are served by rpcd itself and the call would deadlock.
+function wifi_assoc() {
+	let res = {};
+	for (let f in glob('/sys/class/net/phy*-ap*')) {
+		let ifn = replace(f, /.*\//, '');
+		if (match(ifn, /-guest$/)) continue;
+		let cur = null;
+		for (let l in split(sh(`iw dev ${ifn} station dump`), '\n')) {
+			let m = match(l, /^Station ([0-9a-f:]+) /);
+			if (m) { cur = { ifname: ifn }; res[m[1]] = cur; continue; }
+			if (!cur) continue;
+			let kv = match(l, /^\s+([^:]+):\s+(.*)$/);
+			if (!kv) continue;
+			if (kv[1] == 'signal') cur.signal = +match(kv[2], /-?[0-9]+/)[0];
+			else if (kv[1] == 'tx bitrate') cur.tx_rate = +(match(kv[2], /[0-9.]+/)?.[0] ?? 0);
+			else if (kv[1] == 'rx bitrate') cur.rx_rate = +(match(kv[2], /[0-9.]+/)?.[0] ?? 0);
+			else if (kv[1] == 'connected time') cur.connected = +match(kv[2], /[0-9]+/)[0];
+			else if (kv[1] == 'vlan') cur.vlan = +kv[2];
+		}
+		let r = ubus_call(`hostapd.${ifn}`, 'get_clients');
+		for (let mac, c in r?.clients ?? {})
+			if (res[lc(mac)] && (c.vlan_id ?? c.vlan)) res[lc(mac)].vlan = c.vlan_id ?? c.vlan;
+	}
+	return res;
+}
+
+function iwinfo_freqlist(ifn) {
+	let res = { '2g': [], '5g': [] };
+	for (let l in split(sh(`iwinfo ${ifn} freqlist`), '\n')) {
+		let m = match(l, /([0-9.]+) GHz \(Band: [^,]+, Channel ([0-9]+)\)(.*)$/);
+		if (!m || index(m[3], 'restricted') >= 0) continue;
+		let mhz = +m[1] * 1000;
+		if (mhz < 3000) push(res['2g'], +m[2]);
+		else if (mhz < 5900) push(res['5g'], +m[2]);
+	}
+	return res;
+}
+
+function iwinfo_info(ifn) {
+	let t = sh(`iwinfo ${ifn} info`);
+	let ch = match(t, /Channel: ([0-9]+) \(([0-9.]+) GHz\)/);
+	return {
+		channel: ch ? +ch[1] : null, frequency: ch ? +ch[2] : null,
+		htmode: match(t, /HT Mode: (\S+)/)?.[1], hwmodes: match(t, /HW Mode\(s\): (\S+)/)?.[1],
+	};
+}
+
+function iwinfo_scan(ifn) {
+	let res = [], cur = null;
+	for (let l in split(sh(`iwinfo ${ifn} scan`), '\n')) {
+		let m = match(l, /^Cell [0-9]+ - Address: ([0-9A-Fa-f:]+)/);
+		if (m) { cur = { bssid: lc(m[1]) }; push(res, cur); continue; }
+		if (!cur) continue;
+		if ((m = match(l, /ESSID: "(.*)"$/))) cur.ssid = m[1];
+		else if ((m = match(l, /Band: ([0-9.]+) GHz\s+Channel: ([0-9]+)/))) { cur.band = +m[1] < 3 ? '2g' : (+m[1] < 5.9 ? '5g' : '6g'); cur.channel = +m[2]; }
+		else if ((m = match(l, /Signal: (-?[0-9]+) dBm\s+Quality: ([0-9]+)\/([0-9]+)/))) { cur.signal = +m[1]; cur.quality = +m[2]; cur.quality_max = +m[3]; }
+		else if ((m = match(l, /Encryption: (.*)$/))) {
+			let e = m[1];
+			cur.encryption = e == 'none' ? 'none'
+				: (index(e, 'SAE') >= 0 && index(e, 'PSK') >= 0) ? 'sae-mixed'
+				: index(e, 'SAE') >= 0 ? 'sae'
+				: index(e, 'PSK') >= 0 ? 'psk2' : 'psk2';
+		}
+	}
+	return filter(res, x => x.ssid);
+}
+
+function traffic() {
+	let res = {};
+	let j = json(sh('nlbw -c json -g mac') || '{}');
+	let cols = j?.columns ?? [];
+	let im = index(cols, 'mac'), irx = index(cols, 'rx_bytes'), itx = index(cols, 'tx_bytes');
+	if (im < 0) return res;
+	for (let row in j.data ?? [])
+		res[lc(row[im])] = { rx: row[irx], tx: row[itx] };
+	return res;
+}
+
+function blocked_macs(u) {
+	let r = u.get('firewall', 'mor_block', 'src_mac');
+	return type(r) == 'array' ? map(r, lc) : [];
+}
+
+function set_blocked(u, mac, on) {
+	let list = filter(blocked_macs(u), m => m != mac);
+	if (on) push(list, mac);
+	if (length(list)) {
+		u.set('firewall', 'mor_block', 'rule');
+		u.set('firewall', 'mor_block', 'name', 'MyOwnRouter-bloqueados');
+		u.set('firewall', 'mor_block', 'src', '*');
+		u.set('firewall', 'mor_block', 'dest', 'wan');
+		u.set('firewall', 'mor_block', 'src_mac', list);
+		u.set('firewall', 'mor_block', 'target', 'REJECT');
+	} else {
+		u.delete('firewall', 'mor_block');
+	}
+	u.save('firewall');
+	u.commit('firewall');
+}
+
+function client_meta(u) {
+	let res = {};
+	u.foreach('myownrouter', 'client', s => {
+		if (s.mac) res[lc(s.mac)] = { name: s.name, section: s['.name'] };
+	});
+	u.foreach('dhcp', 'host', s => {
+		let macs = type(s.mac) == 'array' ? s.mac : split(s.mac ?? '', ' ');
+		for (let m in macs) {
+			m = lc(m);
+			if (!m) continue;
+			res[m] ??= {};
+			res[m].reserved_ip = s.ip;
+			res[m].dhcp_section = s['.name'];
+			res[m].name ??= s.name;
+		}
+	});
+	return res;
+}
+
+function reload_wifi() {
+	bg('wifi down; sleep 1; wifi up');
+}
+
+// --------------------------------------------------------------- Wi-Fi
+
+function wifi_state(u) {
+	let radio = radio_name(u);
+	if (!radio) return { present: false };
+	let r = u.get_all('wireless', radio) ?? {};
+	let m = u.get_all('wireless', 'main') ?? {};
+	let g = u.get_all('wireless', 'guest_sta');
+	let w = u.get_all('wireless', 'wwan');
+	return {
+		present: true,
+		radio, band: r.band ?? '5g', channel: r.channel ?? 'auto', htmode: r.htmode ?? 'HE80',
+		country: r.country ?? 'AR', txpower: r.txpower ?? '', radio_disabled: r.disabled == '1',
+		enabled: m.disabled != '1', ssid: m.ssid, key: m.key, hidden: m.hidden == '1',
+		security: u.get('myownrouter', 'wifi', 'security') ?? 'sae-mixed',
+		effective_encryption: m.encryption,
+		isolate: m.isolate == '1',
+		guest_enabled: g != null && g.disabled != '1',
+		guest_key: g?.key ?? u.get('myownrouter', 'wifi', 'guest_key') ?? '',
+		repeater: w ? { enabled: w.disabled != '1', ssid: w.ssid, encryption: w.encryption, bssid: w.bssid } : null,
+		ifname: ap_ifname(),
+	};
+}
+
+function wifi_apply_security(u) {
+	// MT7921 = single AP; guest uses PPSK, which only works reliably with WPA2.
+	let sec = u.get('myownrouter', 'wifi', 'security') ?? 'sae-mixed';
+	let guest = u.get('wireless', 'guest_sta') != null;
+	let enc = sec;
+	if (guest && (sec == 'sae' || sec == 'sae-mixed')) enc = 'psk2';
+	if (sec == 'none') enc = 'none';
+	u.set('wireless', 'main', 'encryption', enc);
+	let key = u.get('wireless', 'main', 'key');
+	if (enc != 'none' && key) {
+		u.set('wireless', 'main_sta', 'wifi-station');
+		u.set('wireless', 'main_sta', 'iface', 'main');
+		u.set('wireless', 'main_sta', 'key', key);
+	} else {
+		u.delete('wireless', 'main_sta');
+	}
+}
+
+function wifi_set(u, a) {
+	let radio = radio_name(u);
+	if (!radio) return fail('No hay radio WiFi');
+	if (a.ssid != null) {
+		if (length(a.ssid) < 1 || length(a.ssid) > 32) return fail('SSID inválido');
+		u.set('wireless', 'main', 'ssid', a.ssid);
+	}
+	if (a.key != null) {
+		if (length(a.key) < 8 || length(a.key) > 63) return fail('La contraseña WiFi debe tener entre 8 y 63 caracteres');
+		u.set('wireless', 'main', 'key', a.key);
+	}
+	if (a.security != null) {
+		if (!(a.security in ['sae-mixed', 'sae', 'psk2', 'psk-mixed', 'none'])) return fail('Seguridad inválida');
+		u.set('myownrouter', 'wifi', 'settings');
+		u.set('myownrouter', 'wifi', 'security', a.security);
+	}
+	if (a.enabled != null) u.set('wireless', 'main', 'disabled', a.enabled ? '0' : '1');
+	if (a.hidden != null) u.set('wireless', 'main', 'hidden', a.hidden ? '1' : '0');
+	if (a.isolate != null) u.set('wireless', 'main', 'isolate', a.isolate ? '1' : '0');
+	if (a.band != null) {
+		if (!(a.band in ['2g', '5g'])) return fail('Banda inválida');
+		u.set('wireless', radio, 'band', a.band);
+		if (a.htmode == null)
+			u.set('wireless', radio, 'htmode', a.band == '2g' ? 'HE20' : 'HE80');
+	}
+	if (a.htmode != null) {
+		if (!(a.htmode in ['HE20', 'HE40', 'HE80', 'HE160', 'VHT20', 'VHT40', 'VHT80', 'HT20', 'HT40'])) return fail('Ancho inválido');
+		u.set('wireless', radio, 'htmode', a.htmode);
+	}
+	if (a.channel != null) {
+		if (a.channel != 'auto' && !match(`${a.channel}`, /^[0-9]{1,3}$/)) return fail('Canal inválido');
+		u.set('wireless', radio, 'channel', `${a.channel}`);
+	}
+	if (a.txpower != null) {
+		if (a.txpower == '' ) u.delete('wireless', radio, 'txpower');
+		else if (match(`${a.txpower}`, /^[0-9]{1,2}$/)) u.set('wireless', radio, 'txpower', `${a.txpower}`);
+	}
+	if (a.country != null && match(a.country, /^[A-Z]{2}$/)) u.set('wireless', radio, 'country', a.country);
+
+	if (a.guest_key != null && a.guest_key != '') {
+		if (length(a.guest_key) < 8 || length(a.guest_key) > 63) return fail('La contraseña de invitados debe tener entre 8 y 63 caracteres');
+		u.set('myownrouter', 'wifi', 'settings');
+		u.set('myownrouter', 'wifi', 'guest_key', a.guest_key);
+	}
+	if (a.guest_enabled != null) {
+		if (a.guest_enabled) {
+			let gk = a.guest_key || u.get('myownrouter', 'wifi', 'guest_key');
+			if (!gk) return fail('Falta la contraseña de invitados');
+			if (gk == u.get('wireless', 'main', 'key')) return fail('La contraseña de invitados debe ser distinta de la principal');
+			u.set('wireless', 'guest_vlan', 'wifi-vlan');
+			u.set('wireless', 'guest_vlan', 'iface', 'main');
+			u.set('wireless', 'guest_vlan', 'name', 'guest');
+			u.set('wireless', 'guest_vlan', 'vid', '100');
+			u.set('wireless', 'guest_vlan', 'network', 'guest');
+			u.set('wireless', 'guest_sta', 'wifi-station');
+			u.set('wireless', 'guest_sta', 'iface', 'main');
+			u.set('wireless', 'guest_sta', 'key', gk);
+			u.set('wireless', 'guest_sta', 'vid', '100');
+		} else {
+			u.delete('wireless', 'guest_vlan');
+			u.delete('wireless', 'guest_sta');
+		}
+	} else if (a.guest_key && u.get('wireless', 'guest_sta')) {
+		u.set('wireless', 'guest_sta', 'key', a.guest_key);
+	}
+	wifi_apply_security(u);
+	u.save('myownrouter'); u.commit('myownrouter');
+	u.save('wireless'); u.commit('wireless');
+	reload_wifi();
+	return ok();
+}
+
+// --------------------------------------------------------------- VPN helpers
+
+function vpn_list(u) {
+	let res = [];
+	u.foreach('network', 'interface', s => {
+		if (s.proto == 'wireguard' && match(s['.name'], /^wgc_/)) {
+			let st = iface_status(s['.name']);
+			let ep = null;
+			u.foreach('network', `wireguard_${s['.name']}`, p => { ep ??= p.endpoint_host; });
+			push(res, { id: s['.name'], type: 'wireguard', name: u.get('myownrouter', s['.name'], 'label') ?? substr(s['.name'], 4),
+				enabled: s.disabled != '1', up: st?.up ?? false, endpoint: ep });
+		}
+	});
+	u.foreach('openvpn', 'openvpn', s => {
+		if (!match(s['.name'], /^ovc_/)) return;
+		let pid = trim(sh(`pgrep -f ${q('openvpn.*' + s['.name'])} | head -1`));
+		let up = access(`/sys/class/net/tun_${substr(s['.name'], 4)}`) != null;
+		push(res, { id: s['.name'], type: 'openvpn', name: u.get('myownrouter', s['.name'], 'label') ?? substr(s['.name'], 4),
+			enabled: s.enabled == '1', up: up, running: pid != '' });
+	});
+	return res;
+}
+
+function ensure_vpn_zone(u) {
+	if (u.get('firewall', 'mor_vpn') == null) {
+		u.set('firewall', 'mor_vpn', 'zone');
+		u.set('firewall', 'mor_vpn', 'name', 'vpn');
+		u.set('firewall', 'mor_vpn', 'input', 'REJECT');
+		u.set('firewall', 'mor_vpn', 'output', 'ACCEPT');
+		u.set('firewall', 'mor_vpn', 'forward', 'REJECT');
+		u.set('firewall', 'mor_vpn', 'masq', '1');
+		u.set('firewall', 'mor_vpn', 'mtu_fix', '1');
+		u.set('firewall', 'mor_vpn_fwd', 'forwarding');
+		u.set('firewall', 'mor_vpn_fwd', 'src', 'lan');
+		u.set('firewall', 'mor_vpn_fwd', 'dest', 'vpn');
+	}
+}
+
+function zone_set_members(u, zone_section, key, members) {
+	if (length(members)) u.set('firewall', zone_section, key, members);
+	else u.delete('firewall', zone_section, key);
+}
+
+function vpn_zone_refresh(u) {
+	ensure_vpn_zone(u);
+	let nets = [], devs = [];
+	u.foreach('network', 'interface', s => { if (s.proto == 'wireguard' && match(s['.name'], /^wgc_/)) push(nets, s['.name']); });
+	u.foreach('openvpn', 'openvpn', s => { if (match(s['.name'], /^ovc_/)) push(devs, `tun_${substr(s['.name'], 4)}`); });
+	zone_set_members(u, 'mor_vpn', 'network', nets);
+	zone_set_members(u, 'mor_vpn', 'device', devs);
+}
+
+function parse_wg_conf(text) {
+	let sec = null, iface = {}, peers = [], cur = null;
+	for (let raw in split(text, '\n')) {
+		let l = trim(replace(raw, /[#;].*$/, ''));
+		if (!l) continue;
+		let h = match(l, /^\[(\w+)\]$/);
+		if (h) {
+			sec = lc(h[1]);
+			if (sec == 'peer') { cur = {}; push(peers, cur); }
+			continue;
+		}
+		let kv = match(l, /^([A-Za-z]+)\s*=\s*(.*)$/);
+		if (!kv) continue;
+		let k = lc(kv[1]), v = trim(kv[2]);
+		if (sec == 'interface') iface[k] = v;
+		else if (sec == 'peer' && cur) cur[k] = v;
+	}
+	if (!iface.privatekey || !length(peers)) return null;
+	return { iface, peers };
+}
+
+function csv(v) {
+	return filter(map(split(v ?? '', ','), trim), x => x != '');
+}
+
+// --------------------------------------------------------------- WireGuard server
+
+function wgs_keys(u) {
+	let priv = u.get('network', 'wgserver', 'private_key');
+	if (!priv) {
+		priv = trim(sh('wg genkey'));
+	}
+	let pub = trim(sh(`echo ${q(priv)} | wg pubkey`));
+	return { priv, pub };
+}
+
+function wan_public_host(u) {
+	let ddns = u.get('myownrouter', 'wgserver', 'endpoint');
+	if (ddns) return ddns;
+	let w = iface_status('wan');
+	return w?.ipaddr ?? '';
+}
+
+function wgs_peer_conf(u, name) {
+	let p = u.get_all('network', `wgsp_${name}`);
+	if (!p) return null;
+	let srvpub = trim(sh(`echo ${q(u.get('network', 'wgserver', 'private_key'))} | wg pubkey`));
+	let port = u.get('network', 'wgserver', 'listen_port') ?? '51820';
+	let lan = u.get('network', 'lan', 'ipaddr') ?? '192.168.20.1';
+	let ip = type(p.allowed_ips) == 'array' ? p.allowed_ips[0] : p.allowed_ips;
+	let full = u.get('myownrouter', 'wgserver', 'full_tunnel') != '0';
+	let lanprefix = replace(lan, /\.[0-9]+$/, '.0/24');
+	let srvnet = replace(u.get('network', 'wgserver', 'addresses')?.[0] ?? '10.8.0.1/24', /\.[0-9]+\/.*$/, '.0/24');
+	return sprintf("[Interface]\nPrivateKey = %s\nAddress = %s\nDNS = %s\n\n[Peer]\nPublicKey = %s\nPresharedKey = %s\nAllowedIPs = %s\nEndpoint = %s:%s\nPersistentKeepalive = 25\n",
+		u.get('myownrouter', `wgsp_${name}`, 'private_key') ?? '', ip, lan,
+		srvpub, p.preshared_key ?? '', full ? '0.0.0.0/0, ::/0' : `${lanprefix}, ${srvnet}`,
+		wan_public_host(u), port);
+}
+
+// --------------------------------------------------------------- AdGuard Home
+
+const AGH_YAML = '/etc/adguardhome/adguardhome.yaml';
+
+function agh_write_config(lanip) {
+	if (access(AGH_YAML)) return;
+	mkdir('/etc/adguardhome');
+	writefile(AGH_YAML, sprintf(`http:
+  address: %s:3000
+  session_ttl: 720h
+users: []
+auth_attempts: 5
+block_auth_min: 15
+language: es
+theme: auto
+dns:
+  bind_hosts:
+    - 127.0.0.1
+  port: 3053
+  upstream_dns:
+    - https://dns.quad9.net/dns-query
+    - https://cloudflare-dns.com/dns-query
+  bootstrap_dns:
+    - 9.9.9.9
+    - 1.1.1.1
+  upstream_mode: load_balance
+  cache_size: 4194304
+  enable_dnssec: true
+  ratelimit: 0
+filtering:
+  protection_enabled: true
+  filtering_enabled: true
+  safe_search:
+    enabled: false
+filters:
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt
+    name: AdGuard DNS filter
+    id: 1
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_2.txt
+    name: AdAway Default Blocklist
+    id: 2
+querylog:
+  enabled: true
+  interval: 24h
+statistics:
+  enabled: true
+  interval: 24h
+schema_version: 29
+`, lanip));
+	system('chown -R adguardhome:adguardhome /etc/adguardhome 2>/dev/null');
+}
+
+function agh_set(u, on) {
+	let d = null;
+	u.foreach('dhcp', 'dnsmasq', s => { d ??= s['.name']; });
+	let servers = u.get('dhcp', d, 'server');
+	servers = type(servers) == 'array' ? filter(servers, s => s != '127.0.0.1#3053') : [];
+	if (on) {
+		agh_write_config(u.get('network', 'lan', 'ipaddr') ?? '192.168.20.1');
+		push(servers, '127.0.0.1#3053');
+		u.set('dhcp', d, 'noresolv', '1');
+		system('/etc/init.d/adguardhome enable; /etc/init.d/adguardhome restart');
+	} else {
+		u.delete('dhcp', d, 'noresolv');
+		system('/etc/init.d/adguardhome stop; /etc/init.d/adguardhome disable');
+	}
+	if (length(servers)) u.set('dhcp', d, 'server', servers); else u.delete('dhcp', d, 'server');
+	u.set('myownrouter', 'adguard', 'app');
+	u.set('myownrouter', 'adguard', 'enabled', on ? '1' : '0');
+	u.save('myownrouter'); u.commit('myownrouter');
+	u.save('dhcp'); u.commit('dhcp');
+	bg('/etc/init.d/dnsmasq restart');
+	return ok();
+}
+
+// --------------------------------------------------------------- Tor (transparent)
+
+function tor_set(u, on) {
+	let lan = u.get('network', 'lan', 'ipaddr') ?? '192.168.20.1';
+	let lannet = replace(lan, /\.[0-9]+$/, '.0/24');
+	if (on) {
+		writefile('/etc/tor/torrc.myownrouter', sprintf(
+			"VirtualAddrNetworkIPv4 10.192.0.0/10\nAutomapHostsOnResolve 1\nTransPort %s:9040\nDNSPort %s:9053\nSocksPort %s:9050\n", lan, lan, lan));
+		let torrc = readfile('/etc/tor/torrc') ?? '';
+		if (index(torrc, '%include /etc/tor/torrc.myownrouter') < 0)
+			writefile('/etc/tor/torrc', torrc + '\n%include /etc/tor/torrc.myownrouter\n');
+		u.set('firewall', 'mor_tor_tcp', 'redirect');
+		u.set('firewall', 'mor_tor_tcp', 'name', 'Tor-TCP');
+		u.set('firewall', 'mor_tor_tcp', 'src', 'lan');
+		u.set('firewall', 'mor_tor_tcp', 'proto', 'tcp');
+		u.set('firewall', 'mor_tor_tcp', 'src_dip', `!${lannet}`);
+		u.set('firewall', 'mor_tor_tcp', 'dest_port', '9040');
+		u.set('firewall', 'mor_tor_tcp', 'target', 'DNAT');
+		u.set('firewall', 'mor_tor_dns', 'redirect');
+		u.set('firewall', 'mor_tor_dns', 'name', 'Tor-DNS');
+		u.set('firewall', 'mor_tor_dns', 'src', 'lan');
+		u.set('firewall', 'mor_tor_dns', 'proto', 'udp');
+		u.set('firewall', 'mor_tor_dns', 'src_dport', '53');
+		u.set('firewall', 'mor_tor_dns', 'dest_port', '9053');
+		u.set('firewall', 'mor_tor_dns', 'target', 'DNAT');
+		u.set('firewall', 'mor_tor_in', 'rule');
+		u.set('firewall', 'mor_tor_in', 'name', 'Tor-entrada');
+		u.set('firewall', 'mor_tor_in', 'src', 'lan');
+		u.set('firewall', 'mor_tor_in', 'proto', 'tcp udp');
+		u.set('firewall', 'mor_tor_in', 'dest_port', '9040 9050 9053');
+		u.set('firewall', 'mor_tor_in', 'target', 'ACCEPT');
+		system('/etc/init.d/tor enable; /etc/init.d/tor restart');
+	} else {
+		u.delete('firewall', 'mor_tor_tcp');
+		u.delete('firewall', 'mor_tor_dns');
+		u.delete('firewall', 'mor_tor_in');
+		system('/etc/init.d/tor stop; /etc/init.d/tor disable');
+	}
+	u.set('myownrouter', 'tor', 'app');
+	u.set('myownrouter', 'tor', 'enabled', on ? '1' : '0');
+	u.save('myownrouter'); u.commit('myownrouter');
+	u.save('firewall'); u.commit('firewall');
+	bg('/etc/init.d/firewall reload');
+	return ok();
+}
+
+// --------------------------------------------------------------- scheduled tasks
+
+function cron_rewrite(u) {
+	let cur = readfile('/etc/crontabs/root') ?? '';
+	let lines = filter(split(cur, '\n'), l => l != '' && index(l, '# myownrouter') < 0);
+	u.foreach('myownrouter', 'task', s => {
+		if (s.enabled != '1') return;
+		let days = s.days ?? '*';
+		let cmd = { reboot: 'sleep 70 && touch /etc/banner && reboot', wifi_off: 'uci set wireless.main.disabled=1 && uci commit wireless && wifi reload',
+			wifi_on: 'uci set wireless.main.disabled=0 && uci commit wireless && wifi reload' }[s.action];
+		if (!cmd) return;
+		push(lines, sprintf('%d %d * * %s %s # myownrouter %s', +s.minute, +s.hour, days, cmd, s['.name']));
+	});
+	writefile('/etc/crontabs/root', join('\n', lines) + '\n');
+	system('/etc/init.d/cron enable; /etc/init.d/cron restart');
+}
+
+// =============================================================== methods
+
+const methods = {
+	// Public (unauthenticated) method: tells the login page whether first setup is required.
+	state: {
+		call: function() {
+			let b = ubus_call('system', 'board') ?? {};
+			return { needs_setup: !password_set(), hostname: b.hostname, model: b.model, release: b.release?.version };
+		}
+	},
+
+	setup: {
+		args: { password: '', ssid: '', key: '' },
+		call: function(req) {
+			let a = req.args;
+			if (password_set()) return fail('Ya está configurado');
+			if (length(a.password ?? '') < 8) return fail('La contraseña de administrador debe tener al menos 8 caracteres');
+			let p = popen('passwd root >/dev/null 2>&1', 'w');
+			p.write(`${a.password}\n${a.password}\n`);
+			p.close();
+			if (!password_set()) return fail('No se pudo establecer la contraseña');
+			let u = cursor();
+			if (radio_name(u) && a.ssid && a.key) {
+				let r = wifi_set(u, { ssid: a.ssid, key: a.key, enabled: true });
+				if (!r.ok) return r;
+			}
+			return ok();
+		}
+	},
+
+	set_password: {
+		args: { password: '' },
+		call: function(req) {
+			let pw = req.args.password ?? '';
+			if (length(pw) < 8) return fail('Mínimo 8 caracteres');
+			let p = popen('passwd root >/dev/null 2>&1', 'w');
+			p.write(`${pw}\n${pw}\n`);
+			p.close();
+			return ok();
+		}
+	},
+
+	status: {
+		call: function() {
+			let u = cursor();
+			let b = ubus_call('system', 'board') ?? {};
+			let i = ubus_call('system', 'info') ?? {};
+			let wan = iface_status('wan');
+			let wwan = iface_status('wwan');
+			let lan = iface_status('lan');
+			let guest = iface_status('guest');
+			let online = false;
+			if ((wan?.up || wwan?.up))
+				online = system('ping -c1 -W1 1.1.1.1 >/dev/null 2>&1 || ping -c1 -W1 8.8.8.8 >/dev/null 2>&1') == 0;
+			let ws = wifi_state(u);
+			let ls = leases(), nb = neighbors(), as = wifi_assoc();
+			let active = {};
+			for (let mac, n in nb)
+				if (n.state != 'FAILED' && n.state != 'INCOMPLETE' && (n.dev == 'br-lan' || n.dev == 'br-guest')) active[mac] = true;
+			for (let mac in keys(as)) active[mac] = true;
+			let cpu = trim(readfile('/proc/loadavg') ?? '');
+			let temp = null;
+			for (let t in glob('/sys/class/thermal/thermal_zone*/temp')) { temp = read_int(t) / 1000; break; }
+			let df = split(trim(sh("df -k /overlay | tail -1")), /\s+/);
+			return {
+				system: {
+					hostname: b.hostname, model: b.model, kernel: b.kernel, release: b.release?.description,
+					uptime: i.uptime, load: map(i.load ?? [0, 0, 0], x => x / 65536.0), loadavg: cpu,
+					memory: i.memory, temp, cpus: +trim(sh('grep -c ^processor /proc/cpuinfo')),
+					storage: { total: +(df[1] ?? 0) * 1024, used: +(df[2] ?? 0) * 1024 },
+					localtime: time(),
+				},
+				internet: { online, wan, wwan, wan_proto: u.get('network', 'wan', 'proto') },
+				lan, guest,
+				wifi: ws.present ? {
+					present: true, enabled: ws.enabled, ssid: ws.ssid, band: ws.band, channel: ws.channel,
+					htmode: ws.htmode, guest_enabled: ws.guest_enabled, repeater: ws.repeater,
+					clients: length(filter(values(as), x => x.ifname)),
+				} : { present: false },
+				clients: length(keys(active)),
+				vpn: filter(vpn_list(u), v => v.up),
+				apps: {
+					adguard: u.get('myownrouter', 'adguard', 'enabled') == '1',
+					tor: u.get('myownrouter', 'tor', 'enabled') == '1',
+					tailscale: system('pgrep tailscaled >/dev/null') == 0,
+					zerotier: u.get('zerotier', 'global', 'enabled') == '1',
+					wgserver: u.get('network', 'wgserver') != null && u.get('network', 'wgserver', 'disabled') != '1',
+				},
+				needs_setup: !password_set(),
+			};
+		}
+	},
+
+	clients: {
+		call: function() {
+			let u = cursor();
+			let ls = leases(), nb = neighbors(), as = wifi_assoc(), tr = traffic(), meta = client_meta(u);
+			let blocked = blocked_macs(u);
+			let all = {};
+			for (let mac in keys(ls)) all[mac] = true;
+			for (let mac, n in nb) if (n.dev == 'br-lan' || n.dev == 'br-guest') all[mac] = true;
+			for (let mac in keys(as)) all[mac] = true;
+			for (let mac in keys(meta)) if (meta[mac].reserved_ip || meta[mac].name) all[mac] = true;
+			for (let mac in blocked) all[mac] = true;
+			let res = [];
+			for (let mac in keys(all)) {
+				let l = ls[mac], n = nb[mac], w = as[mac], m = meta[mac] ?? {};
+				let online = (n && n.state != 'FAILED' && n.state != 'INCOMPLETE' && n.state != 'STALE') || w != null;
+				let net = (n?.dev == 'br-guest' || w?.vlan == 100 || match(l?.ip ?? '', /^192\.168\.21\./)) ? 'guest' : 'lan';
+				push(res, {
+					mac, ip: n?.ip ?? l?.ip ?? m.reserved_ip, hostname: l?.hostname, name: m.name,
+					online, network: net, wireless: w != null, signal: w?.signal,
+					rx_rate: w?.rx_rate, tx_rate: w?.tx_rate,
+					traffic_rx: tr[mac]?.rx ?? 0, traffic_tx: tr[mac]?.tx ?? 0,
+					reserved_ip: m.reserved_ip, blocked: mac in blocked,
+				});
+			}
+			return { clients: res };
+		}
+	},
+
+	client_set: {
+		args: { mac: '', name: '', reserved_ip: '', blocked: false },
+		call: function(req) {
+			let a = req.args;
+			let mac = lc(a.mac ?? '');
+			if (!valid_mac(mac)) return fail('MAC inválida');
+			let u = cursor();
+			let meta = client_meta(u)[mac] ?? {};
+			let sid = 'c_' + replace(mac, /:/g, '');
+			if (a.name != null) {
+				if (a.name == '') u.delete('myownrouter', sid);
+				else {
+					u.set('myownrouter', sid, 'client');
+					u.set('myownrouter', sid, 'mac', mac);
+					u.set('myownrouter', sid, 'name', substr(a.name, 0, 64));
+				}
+				u.save('myownrouter'); u.commit('myownrouter');
+			}
+			if (a.reserved_ip != null) {
+				let hs = meta.dhcp_section;
+				if (a.reserved_ip == '') {
+					if (hs) u.delete('dhcp', hs);
+				} else {
+					if (!valid_ip4(a.reserved_ip)) return fail('IP inválida');
+					if (!hs) { hs = 'h_' + replace(mac, /:/g, ''); u.set('dhcp', hs, 'host'); }
+					u.set('dhcp', hs, 'mac', mac);
+					u.set('dhcp', hs, 'ip', a.reserved_ip);
+					let nm = replace(a.name ?? meta.name ?? '', /[^A-Za-z0-9-]/g, '-');
+					if (nm != '') u.set('dhcp', hs, 'name', nm);
+				}
+				u.save('dhcp'); u.commit('dhcp');
+				bg('/etc/init.d/dnsmasq reload');
+			}
+			if (a.blocked != null) {
+				set_blocked(u, mac, a.blocked);
+				bg('/etc/init.d/firewall reload; conntrack -F 2>/dev/null');
+			}
+			return ok();
+		}
+	},
+
+	// ------------------------------------------------------------ Wi-Fi
+
+	wifi_get: {
+		call: function() {
+			let u = cursor();
+			let st = wifi_state(u);
+			if (!st.present) return st;
+			let ifn = st.ifname;
+			st.live = ifn ? iwinfo_info(ifn) : null;
+			st.channels = ifn ? iwinfo_freqlist(ifn) : { '2g': [], '5g': [] };
+			return st;
+		}
+	},
+
+	wifi_set: {
+		args: { enabled: false, ssid: '', key: '', security: '', hidden: false, isolate: false, band: '', htmode: '', channel: '', txpower: '', country: '', guest_enabled: false, guest_key: '' },
+		call: function(req) {
+			let a = {};
+			// only apply arguments that were actually sent
+			for (let k, v in req.args) a[k] = v;
+			return wifi_set(cursor(), a);
+		}
+	},
+
+	wifi_scan: {
+		call: function() {
+			let ifn = ap_ifname() ?? sta_ifname();
+			if (!ifn) {
+				for (let f in glob('/sys/class/net/phy*')) { ifn = replace(f, /.*\//, ''); break; }
+			}
+			if (!ifn) return { results: [] };
+			let res = filter(iwinfo_scan(ifn), x => x.band != '6g');
+			res = sort(res, (x, y) => y.signal - x.signal);
+			return { results: res };
+		}
+	},
+
+	repeater_set: {
+		args: { enabled: false, ssid: '', key: '', encryption: '', band: '', bssid: '' },
+		call: function(req) {
+			let a = req.args;
+			let u = cursor();
+			let radio = radio_name(u);
+			if (!radio) return fail('No hay radio WiFi');
+			if (!a.enabled) {
+				u.set('wireless', 'wwan', 'disabled', '1');
+				u.save('wireless'); u.commit('wireless');
+				reload_wifi();
+				return ok();
+			}
+			if (!a.ssid) return fail('Falta el SSID');
+			let enc = a.encryption || 'psk2';
+			if (!(enc in ['none', 'psk', 'psk2', 'psk-mixed', 'sae', 'sae-mixed'])) return fail('Cifrado inválido');
+			if (enc != 'none' && length(a.key ?? '') < 8) return fail('Contraseña inválida');
+			u.set('wireless', 'wwan', 'wifi-iface');
+			u.set('wireless', 'wwan', 'device', radio);
+			u.set('wireless', 'wwan', 'mode', 'sta');
+			u.set('wireless', 'wwan', 'network', 'wwan');
+			u.set('wireless', 'wwan', 'ssid', a.ssid);
+			u.set('wireless', 'wwan', 'encryption', enc);
+			if (enc != 'none') u.set('wireless', 'wwan', 'key', a.key); else u.delete('wireless', 'wwan', 'key');
+			if (a.bssid && valid_mac(a.bssid)) u.set('wireless', 'wwan', 'bssid', lc(a.bssid)); else u.delete('wireless', 'wwan', 'bssid');
+			u.set('wireless', 'wwan', 'disabled', '0');
+			// single radio: AP must live on the upstream band/channel
+			if (a.band in ['2g', '5g']) {
+				u.set('wireless', radio, 'band', a.band);
+				u.set('wireless', radio, 'htmode', a.band == '2g' ? 'HE20' : 'HE80');
+			}
+			u.set('wireless', radio, 'channel', 'auto');
+			u.set('network', 'wwan', 'interface');
+			u.set('network', 'wwan', 'proto', 'dhcp');
+			u.set('network', 'wwan', 'metric', '20');
+			let wz = null;
+			u.foreach('firewall', 'zone', z => { if (z.name == 'wan') wz = z['.name']; });
+			if (wz) {
+				let nets = u.get('firewall', wz, 'network');
+				nets = type(nets) == 'array' ? nets : split(nets ?? '', ' ');
+				if (!('wwan' in nets)) { push(nets, 'wwan'); u.set('firewall', wz, 'network', nets); }
+			}
+			u.save('wireless'); u.commit('wireless');
+			u.save('network'); u.commit('network');
+			u.save('firewall'); u.commit('firewall');
+			bg('/etc/init.d/network reload; /etc/init.d/firewall reload; sleep 2; wifi down; sleep 1; wifi up');
+			return ok();
+		}
+	},
+
+	// ------------------------------------------------------------ generic apply
+
+	apply: {
+		args: { what: '' },
+		call: function(req) {
+			let cmds = {
+				network: '/etc/init.d/network reload',
+				firewall: '/etc/init.d/firewall reload',
+				dhcp: '/etc/init.d/dnsmasq reload; /etc/init.d/odhcpd reload',
+				wifi: 'wifi down; sleep 1; wifi up',
+				upnp: '/etc/init.d/miniupnpd enable; /etc/init.d/miniupnpd restart',
+				sqm: '/etc/init.d/sqm enable; /etc/init.d/sqm restart',
+				ddns: '/etc/init.d/ddns enable; /etc/init.d/ddns restart',
+				samba: '/etc/init.d/ksmbd enable; /etc/init.d/ksmbd restart',
+				zerotier: '/etc/init.d/zerotier enable; /etc/init.d/zerotier restart',
+				system: '/etc/init.d/system reload; /etc/init.d/sysntpd restart',
+				mwan3: '/etc/init.d/mwan3 enable; /etc/init.d/mwan3 restart',
+				ipv6: '/etc/init.d/network reload; /etc/init.d/odhcpd restart',
+				openvpn: '/etc/init.d/openvpn restart',
+				cron: '',
+			};
+			let c = cmds[req.args.what];
+			if (c == null) return fail('Desconocido');
+			if (req.args.what == 'cron') { cron_rewrite(cursor()); return ok(); }
+			bg(c);
+			return ok();
+		}
+	},
+
+	// ------------------------------------------------------------ VPN clients
+
+	vpn_list: {
+		call: function() {
+			let u = cursor();
+			return { clients: vpn_list(u), policy: u.get_all('myownrouter', 'vpnpolicy') ?? {} };
+		}
+	},
+
+	vpn_import: {
+		args: { type: '', name: '', config: '', username: '', password: '' },
+		call: function(req) {
+			let a = req.args;
+			if (!valid_name(a.name)) return fail('Nombre inválido (letras, números y _; máx. 15)');
+			let u = cursor();
+			if (a.type == 'wireguard') {
+				let c = parse_wg_conf(a.config ?? '');
+				if (!c) return fail('Configuración WireGuard inválida');
+				let id = `wgc_${a.name}`;
+				if (u.get('network', id)) return fail('Ya existe');
+				u.set('network', id, 'interface');
+				u.set('network', id, 'proto', 'wireguard');
+				u.set('network', id, 'private_key', c.iface.privatekey);
+				u.set('network', id, 'addresses', csv(c.iface.address));
+				if (c.iface.dns) u.set('network', id, 'dns', csv(c.iface.dns));
+				if (c.iface.mtu) u.set('network', id, 'mtu', c.iface.mtu);
+				u.set('network', id, 'disabled', '1');
+				let n = 0;
+				for (let p in c.peers) {
+					let ps = `${id}_p${n++}`;
+					u.set('network', ps, `wireguard_${id}`);
+					u.set('network', ps, 'public_key', p.publickey);
+					if (p.presharedkey) u.set('network', ps, 'preshared_key', p.presharedkey);
+					let ep = match(p.endpoint ?? '', /^\[?([^\]]+?)\]?:([0-9]+)$/);
+					if (ep) { u.set('network', ps, 'endpoint_host', ep[1]); u.set('network', ps, 'endpoint_port', ep[2]); }
+					u.set('network', ps, 'allowed_ips', csv(p.allowedips ?? '0.0.0.0/0'));
+					u.set('network', ps, 'route_allowed_ips', '1');
+					u.set('network', ps, 'persistent_keepalive', p.persistentkeepalive ?? '25');
+				}
+				u.set('myownrouter', id, 'vpn');
+				u.set('myownrouter', id, 'label', a.name);
+				vpn_zone_refresh(u);
+				u.save('network'); u.commit('network');
+				u.save('firewall'); u.commit('firewall');
+				u.save('myownrouter'); u.commit('myownrouter');
+				bg('/etc/init.d/network reload; /etc/init.d/firewall reload');
+				return ok({ id });
+			}
+			if (a.type == 'openvpn') {
+				let id = `ovc_${a.name}`;
+				let cfg = a.config ?? '';
+				if (index(cfg, 'remote ') < 0) return fail('Archivo .ovpn inválido');
+				mkdir('/etc/openvpn');
+				let dev = `tun_${a.name}`;
+				// force our device name and auth file
+				cfg = replace(cfg, /(^|\n)\s*dev\s+[^\n]*/g, '\n');
+				cfg = replace(cfg, /(^|\n)\s*auth-user-pass[^\n]*/g, '\n');
+				cfg = `dev ${dev}\ndev-type tun\n` + cfg;
+				if (a.username) {
+					writefile(`/etc/openvpn/${id}.auth`, `${a.username}\n${a.password}\n`);
+					system(`chmod 600 /etc/openvpn/${id}.auth`);
+					cfg += `\nauth-user-pass /etc/openvpn/${id}.auth\n`;
+				}
+				writefile(`/etc/openvpn/${id}.ovpn`, cfg);
+				system(`chmod 600 /etc/openvpn/${id}.ovpn`);
+				u.set('openvpn', id, 'openvpn');
+				u.set('openvpn', id, 'config', `/etc/openvpn/${id}.ovpn`);
+				u.set('openvpn', id, 'enabled', '0');
+				u.set('myownrouter', id, 'vpn');
+				u.set('myownrouter', id, 'label', a.name);
+				vpn_zone_refresh(u);
+				u.save('openvpn'); u.commit('openvpn');
+				u.save('firewall'); u.commit('firewall');
+				u.save('myownrouter'); u.commit('myownrouter');
+				bg('/etc/init.d/firewall reload');
+				return ok({ id });
+			}
+			return fail('Tipo inválido');
+		}
+	},
+
+	vpn_connect: {
+		args: { id: '', connect: false },
+		call: function(req) {
+			let id = req.args.id ?? '', on = req.args.connect;
+			let u = cursor();
+			let cmds = [];
+			// only one client tunnel at a time (like consumer routers)
+			for (let v in vpn_list(u)) {
+				if (v.type == 'wireguard') {
+					let want = on && v.id == id;
+					u.set('network', v.id, 'disabled', want ? '0' : '1');
+				} else {
+					let want = on && v.id == id;
+					u.set('openvpn', v.id, 'enabled', want ? '1' : '0');
+				}
+			}
+			u.save('network'); u.commit('network');
+			u.save('openvpn'); u.commit('openvpn');
+			bg('/etc/init.d/network reload; /etc/init.d/openvpn restart');
+			return ok();
+		}
+	},
+
+	vpn_delete: {
+		args: { id: '' },
+		call: function(req) {
+			let id = req.args.id ?? '';
+			let u = cursor();
+			if (match(id, /^wgc_[A-Za-z0-9_]+$/)) {
+				u.delete('network', id);
+				let peers = [];
+				u.foreach('network', `wireguard_${id}`, p => push(peers, p['.name']));
+				for (let p in peers) u.delete('network', p);
+			} else if (match(id, /^ovc_[A-Za-z0-9_]+$/)) {
+				u.delete('openvpn', id);
+				unlink(`/etc/openvpn/${id}.ovpn`);
+				unlink(`/etc/openvpn/${id}.auth`);
+			} else return fail('ID inválido');
+			u.delete('myownrouter', id);
+			vpn_zone_refresh(u);
+			for (let c in ['network', 'openvpn', 'firewall', 'myownrouter']) { u.save(c); u.commit(c); }
+			bg('/etc/init.d/network reload; /etc/init.d/openvpn restart; /etc/init.d/firewall reload');
+			return ok();
+		}
+	},
+
+	vpn_policy_set: {
+		// mode: all = every LAN client through the VPN, exclude/include = per-device lists (pbr)
+		args: { mode: '', macs: [], kill_switch: false },
+		call: function(req) {
+			let a = req.args;
+			let u = cursor();
+			if (!(a.mode in ['all', 'include', 'exclude'])) return fail('Modo inválido');
+			u.set('myownrouter', 'vpnpolicy', 'settings');
+			u.set('myownrouter', 'vpnpolicy', 'mode', a.mode);
+			u.set('myownrouter', 'vpnpolicy', 'kill_switch', a.kill_switch ? '1' : '0');
+			let macs = filter(map(a.macs ?? [], lc), valid_mac);
+			if (length(macs)) u.set('myownrouter', 'vpnpolicy', 'macs', macs); else u.delete('myownrouter', 'vpnpolicy', 'macs');
+			// kill switch: LAN may not forward to WAN while a VPN tunnel is enabled
+			let lw = null;
+			u.foreach('firewall', 'forwarding', f => { if (f.src == 'lan' && f.dest == 'wan') lw = f['.name']; });
+			if (lw) u.set('firewall', lw, 'enabled', a.kill_switch ? '0' : '1');
+			u.save('myownrouter'); u.commit('myownrouter');
+			u.save('firewall'); u.commit('firewall');
+			bg('/etc/init.d/firewall reload');
+			return ok();
+		}
+	},
+
+	// ------------------------------------------------------------ WireGuard server
+
+	wgserver_get: {
+		call: function() {
+			let u = cursor();
+			let s = u.get_all('network', 'wgserver');
+			let peers = [];
+			u.foreach('network', 'wireguard_wgserver', p => {
+				push(peers, { name: substr(p['.name'], 5), ip: type(p.allowed_ips) == 'array' ? p.allowed_ips[0] : p.allowed_ips, public_key: p.public_key });
+			});
+			let dump = sh('wg show wgserver dump');
+			for (let l in split(dump, '\n')) {
+				let f = split(l, '\t');
+				if (length(f) < 8) continue;
+				for (let p in peers) if (p.public_key == f[0]) { p.endpoint = f[2] == '(none)' ? null : f[2]; p.handshake = +f[4]; p.rx = +f[5]; p.tx = +f[6]; }
+			}
+			return {
+				configured: s != null, enabled: s != null && s.disabled != '1',
+				port: s?.listen_port ?? '51820', address: s?.addresses?.[0] ?? '10.8.0.1/24',
+				endpoint: u.get('myownrouter', 'wgserver', 'endpoint') ?? '',
+				full_tunnel: u.get('myownrouter', 'wgserver', 'full_tunnel') != '0',
+				public_key: s?.private_key ? trim(sh(`echo ${q(s.private_key)} | wg pubkey`)) : null,
+				wan_ip: iface_status('wan')?.ipaddr,
+				peers,
+			};
+		}
+	},
+
+	wgserver_set: {
+		args: { enabled: false, port: '', address: '', endpoint: '', full_tunnel: true },
+		call: function(req) {
+			let a = req.args;
+			let u = cursor();
+			let port = `${a.port || '51820'}`;
+			if (!match(port, /^[0-9]{2,5}$/)) return fail('Puerto inválido');
+			let addr = a.address || '10.8.0.1/24';
+			if (!match(addr, /^[0-9.]+\/[0-9]{1,2}$/)) return fail('Subred inválida');
+			let k = wgs_keys(u);
+			u.set('network', 'wgserver', 'interface');
+			u.set('network', 'wgserver', 'proto', 'wireguard');
+			u.set('network', 'wgserver', 'private_key', k.priv);
+			u.set('network', 'wgserver', 'listen_port', port);
+			u.set('network', 'wgserver', 'addresses', [addr]);
+			u.set('network', 'wgserver', 'disabled', a.enabled ? '0' : '1');
+			u.set('myownrouter', 'wgserver', 'settings');
+			u.set('myownrouter', 'wgserver', 'endpoint', a.endpoint ?? '');
+			u.set('myownrouter', 'wgserver', 'full_tunnel', a.full_tunnel === false ? '0' : '1');
+			// the tunnel joins the LAN zone; open the port on WAN
+			let lz = null;
+			u.foreach('firewall', 'zone', z => { if (z.name == 'lan') lz = z['.name']; });
+			let nets = u.get('firewall', lz, 'network');
+			nets = type(nets) == 'array' ? nets : split(nets ?? '', ' ');
+			if (!('wgserver' in nets)) { push(nets, 'wgserver'); u.set('firewall', lz, 'network', nets); }
+			u.set('firewall', 'mor_wgs', 'rule');
+			u.set('firewall', 'mor_wgs', 'name', 'WireGuard-servidor');
+			u.set('firewall', 'mor_wgs', 'src', 'wan');
+			u.set('firewall', 'mor_wgs', 'proto', 'udp');
+			u.set('firewall', 'mor_wgs', 'dest_port', port);
+			u.set('firewall', 'mor_wgs', 'target', 'ACCEPT');
+			u.set('firewall', 'mor_wgs', 'enabled', a.enabled ? '1' : '0');
+			for (let c in ['network', 'firewall', 'myownrouter']) { u.save(c); u.commit(c); }
+			bg('/etc/init.d/network reload; /etc/init.d/firewall reload');
+			return ok();
+		}
+	},
+
+	wgserver_peer_add: {
+		args: { name: '' },
+		call: function(req) {
+			let name = req.args.name ?? '';
+			if (!valid_name(name)) return fail('Nombre inválido');
+			let u = cursor();
+			if (!u.get('network', 'wgserver')) return fail('Primero configurá el servidor');
+			if (u.get('network', `wgsp_${name}`)) return fail('Ya existe');
+			let used = {};
+			u.foreach('network', 'wireguard_wgserver', p => {
+				let ip = type(p.allowed_ips) == 'array' ? p.allowed_ips[0] : p.allowed_ips;
+				let m = match(ip ?? '', /\.([0-9]+)\//);
+				if (m) used[m[1]] = true;
+			});
+			let base = replace(u.get('network', 'wgserver', 'addresses')[0], /\.[0-9]+\/.*$/, '.');
+			let host = null;
+			for (let i = 2; i < 255; i++) if (!used[`${i}`]) { host = i; break; }
+			if (!host) return fail('Sin direcciones libres');
+			let priv = trim(sh('wg genkey'));
+			let pub = trim(sh(`echo ${q(priv)} | wg pubkey`));
+			let psk = trim(sh('wg genpsk'));
+			let id = `wgsp_${name}`;
+			u.set('network', id, 'wireguard_wgserver');
+			u.set('network', id, 'description', name);
+			u.set('network', id, 'public_key', pub);
+			u.set('network', id, 'preshared_key', psk);
+			u.set('network', id, 'allowed_ips', [`${base}${host}/32`]);
+			u.set('myownrouter', id, 'wgpeer');
+			u.set('myownrouter', id, 'private_key', priv);
+			for (let c in ['network', 'myownrouter']) { u.save(c); u.commit(c); }
+			bg('/etc/init.d/network reload');
+			return ok();
+		}
+	},
+
+	wgserver_peer_conf: {
+		args: { name: '' },
+		call: function(req) {
+			let name = req.args.name ?? '';
+			if (!valid_name(name)) return fail('Nombre inválido');
+			let u = cursor();
+			let conf = wgs_peer_conf(u, name);
+			if (!conf) return fail('No existe');
+			mkdir(RUN_DIR);
+			let tmp = `${RUN_DIR}/qr.conf`;
+			writefile(tmp, conf);
+			let svg = sh(`qrencode -t SVG -m 1 -r ${tmp}`);
+			unlink(tmp);
+			return ok({ config: conf, qr_svg: svg });
+		}
+	},
+
+	wgserver_peer_del: {
+		args: { name: '' },
+		call: function(req) {
+			let name = req.args.name ?? '';
+			if (!valid_name(name)) return fail('Nombre inválido');
+			let u = cursor();
+			u.delete('network', `wgsp_${name}`);
+			u.delete('myownrouter', `wgsp_${name}`);
+			for (let c in ['network', 'myownrouter']) { u.save(c); u.commit(c); }
+			bg('/etc/init.d/network reload');
+			return ok();
+		}
+	},
+
+	// ------------------------------------------------------------ apps
+
+	adguard_set: {
+		args: { enabled: false },
+		call: function(req) { return agh_set(cursor(), req.args.enabled); }
+	},
+
+	tor_set: {
+		args: { enabled: false },
+		call: function(req) { return tor_set(cursor(), req.args.enabled); }
+	},
+
+	tailscale_status: {
+		call: function() {
+			let running = system('pgrep tailscaled >/dev/null') == 0;
+			let st = running ? json(sh('tailscale status --json') || 'null') : null;
+			let url = trim(readfile(`${RUN_DIR}/tailscale.url`) ?? '');
+			return {
+				running, backend_state: st?.BackendState, auth_url: st?.AuthURL || url || null,
+				self: st?.Self ? { hostname: st.Self.HostName, ips: st.Self.TailscaleIPs, online: st.Self.Online } : null,
+				peers: length(keys(st?.Peer ?? {})),
+				advertise_lan: cursor().get('myownrouter', 'tailscale', 'advertise_lan') == '1',
+				exit_node: cursor().get('myownrouter', 'tailscale', 'exit_node') == '1',
+			};
+		}
+	},
+
+	tailscale_set: {
+		args: { enabled: false, advertise_lan: false, exit_node: false, logout: false },
+		call: function(req) {
+			let a = req.args;
+			let u = cursor();
+			mkdir(RUN_DIR);
+			u.set('myownrouter', 'tailscale', 'app');
+			u.set('myownrouter', 'tailscale', 'enabled', a.enabled ? '1' : '0');
+			u.set('myownrouter', 'tailscale', 'advertise_lan', a.advertise_lan ? '1' : '0');
+			u.set('myownrouter', 'tailscale', 'exit_node', a.exit_node ? '1' : '0');
+			u.save('myownrouter'); u.commit('myownrouter');
+			// tailscale0 into the LAN zone so peers reach LAN when routes are advertised
+			let lz = null;
+			u.foreach('firewall', 'zone', z => { if (z.name == 'lan') lz = z['.name']; });
+			let devs = u.get('firewall', lz, 'device');
+			devs = type(devs) == 'array' ? devs : (devs ? [devs] : []);
+			devs = filter(devs, d => d != 'tailscale0');
+			if (a.enabled) push(devs, 'tailscale0');
+			if (length(devs)) u.set('firewall', lz, 'device', devs); else u.delete('firewall', lz, 'device');
+			u.save('firewall'); u.commit('firewall');
+			if (!a.enabled) {
+				bg(`${a.logout ? 'tailscale logout;' : 'tailscale down;'} /etc/init.d/tailscale stop; /etc/init.d/tailscale disable; /etc/init.d/firewall reload`);
+				return ok();
+			}
+			let lan = u.get('network', 'lan', 'ipaddr') ?? '192.168.20.1';
+			let routes = a.advertise_lan ? replace(lan, /\.[0-9]+$/, '.0/24') : '';
+			let flags = `--accept-dns=false --advertise-routes=${q(routes)} ${a.exit_node ? '--advertise-exit-node' : ''} --hostname=${q(lc(u.get('system', '@system[0]', 'hostname') ?? 'myownrouter'))}`;
+			unlink(`${RUN_DIR}/tailscale.url`);
+			bg(`/etc/init.d/tailscale enable; /etc/init.d/tailscale start; sleep 3; /etc/init.d/firewall reload; ` +
+				`tailscale up --reset ${flags} --timeout=120s 2>&1 | grep -o 'https://login.tailscale.com/[^ ]*' | head -1 > ${RUN_DIR}/tailscale.url`);
+			return ok();
+		}
+	},
+
+	zerotier_status: {
+		call: function() {
+			if (system('pgrep zerotier-one >/dev/null') != 0) return { running: false, networks: [] };
+			let info = json(sh('zerotier-cli -j info') || 'null');
+			let nets = json(sh('zerotier-cli -j listnetworks') || '[]');
+			return { running: true, address: info?.address, online: info?.online,
+				networks: map(nets ?? [], n => ({ id: n.nwid, name: n.name, status: n.status, ips: n.assignedAddresses })) };
+		}
+	},
+
+	// ------------------------------------------------------------ system
+
+	timezones: {
+		call: function() {
+			let res = [];
+			for (let name, spec in zoneinfo) push(res, [name, spec]);
+			return { zones: sort(res, (a, b) => a[0] < b[0] ? -1 : 1) };
+		}
+	},
+
+	log: {
+		args: { lines: 200, kernel: false },
+		call: function(req) {
+			let n = +(req.args.lines ?? 200);
+			if (n < 10 || n > 2000) n = 200;
+			return { log: req.args.kernel ? sh(`dmesg | tail -n ${n}`) : sh(`logread -l ${n}`) };
+		}
+	},
+
+	reboot: {
+		call: function() { bg('reboot'); return ok(); }
+	},
+
+	factory_reset: {
+		call: function() { bg('firstboot -y && reboot'); return ok(); }
+	},
+
+	upgrade_check: {
+		call: function() {
+			let st = stat(UPLOAD);
+			if (!st) return fail('No se subió ningún archivo');
+			let rc = system(`sysupgrade -T ${UPLOAD} >/dev/null 2>&1`);
+			let sum = split(trim(sh(`sha256sum ${UPLOAD}`)), ' ')[0];
+			return { ok: rc == 0, size: st.size, sha256: sum, error: rc == 0 ? null : 'La imagen no es válida para este equipo' };
+		}
+	},
+
+	upgrade_start: {
+		args: { keep: true },
+		call: function(req) {
+			if (!stat(UPLOAD)) return fail('No se subió ningún archivo');
+			bg(`sysupgrade ${req.args.keep === false ? '-n' : ''} ${UPLOAD}`);
+			return ok();
+		}
+	},
+
+	speedtest_start: {
+		call: function() {
+			mkdir(RUN_DIR);
+			if (system('pgrep librespeed-cli >/dev/null') == 0) return ok({ running: true });
+			unlink(`${RUN_DIR}/speedtest.json`);
+			system(`( librespeed-cli --json --telemetry-level disabled > ${RUN_DIR}/speedtest.tmp 2>/dev/null; mv ${RUN_DIR}/speedtest.tmp ${RUN_DIR}/speedtest.json ) >/dev/null 2>&1 </dev/null &`);
+			return ok({ running: true });
+		}
+	},
+
+	speedtest_result: {
+		call: function() {
+			let running = system('pgrep librespeed-cli >/dev/null') == 0;
+			let r = json(readfile(`${RUN_DIR}/speedtest.json`) || 'null');
+			if (type(r) == 'array') r = r[0];
+			return { running, result: r ? { download: r.download, upload: r.upload, ping: r.ping, jitter: r.jitter, server: r.server?.name } : null };
+		}
+	},
+
+	diag: {
+		args: { tool: '', host: '' },
+		call: function(req) {
+			let h = req.args.host ?? '';
+			if (!match(h, /^[A-Za-z0-9.:-]{1,253}$/)) return fail('Host inválido');
+			let cmd = { ping: `ping -c 4 -W 2 ${q(h)}`, traceroute: `traceroute -w 2 -q 1 -m 20 ${q(h)}`, nslookup: `nslookup ${q(h)}` }[req.args.tool];
+			if (!cmd) return fail('Herramienta inválida');
+			let p = popen(cmd + ' 2>&1');
+			let out = p ? p.read('all') : '';
+			if (p) p.close();
+			return ok({ output: out });
+		}
+	},
+
+	service: {
+		args: { name: '', action: '' },
+		call: function(req) {
+			let allowed = [ 'adguardhome', 'tailscale', 'zerotier', 'tor', 'openvpn', 'ksmbd', 'miniupnpd', 'sqm', 'ddns',
+				'mwan3', 'nlbwmon', 'dnsmasq', 'firewall', 'network', 'dropbear', 'uhttpd', 'cron', 'pbr', 'ttyd' ];
+			let n = req.args.name, a = req.args.action;
+			if (!(n in allowed) || !(a in [ 'start', 'stop', 'restart', 'reload', 'enable', 'disable', 'on', 'off' ])) return fail('Inválido');
+			if (a == 'on') bg(`/etc/init.d/${n} enable; /etc/init.d/${n} restart`);
+			else if (a == 'off') bg(`/etc/init.d/${n} stop; /etc/init.d/${n} disable`);
+			else bg(`/etc/init.d/${n} ${a}`);
+			return ok();
+		}
+	},
+
+	service_status: {
+		call: function() {
+			let res = {};
+			let r = ubus_call('service', 'list') ?? {};
+			for (let n, s in r) {
+				let running = false;
+				for (let iname, inst in s.instances ?? {}) if (inst.running) running = true;
+				res[n] = running;
+			}
+			return { services: res };
+		}
+	},
+
+	zerotier_set: {
+		args: { enabled: false, network_id: '' },
+		call: function(req) {
+			let a = req.args;
+			let u = cursor();
+			let nid = lc(a.network_id ?? '');
+			if (a.enabled && !match(nid, /^[0-9a-f]{16}$/)) return fail('El ID de red debe tener 16 caracteres hexadecimales');
+			let old = [];
+			u.foreach('zerotier', 'network', s => push(old, s['.name']));
+			for (let s in old) u.delete('zerotier', s);
+			u.set('zerotier', 'global', 'enabled', a.enabled ? '1' : '0');
+			if (a.enabled) {
+				u.set('zerotier', 'mor', 'network');
+				u.set('zerotier', 'mor', 'id', nid);
+				u.set('zerotier', 'mor', 'allow_managed', '1');
+				u.set('zerotier', 'mor', 'allow_global', '0');
+				u.set('zerotier', 'mor', 'allow_default', '0');
+				u.set('zerotier', 'mor', 'allow_dns', '0');
+			}
+			let lz = null;
+			u.foreach('firewall', 'zone', z => { if (z.name == 'lan') lz = z['.name']; });
+			let devs = u.get('firewall', lz, 'device');
+			devs = filter(type(devs) == 'array' ? devs : (devs ? [devs] : []), d => d != 'zt+');
+			if (a.enabled) push(devs, 'zt+');
+			if (length(devs)) u.set('firewall', lz, 'device', devs); else u.delete('firewall', lz, 'device');
+			u.save('zerotier'); u.commit('zerotier');
+			u.save('firewall'); u.commit('firewall');
+			bg(a.enabled ? '/etc/init.d/zerotier enable; /etc/init.d/zerotier restart; /etc/init.d/firewall reload'
+				: '/etc/init.d/zerotier stop; /etc/init.d/zerotier disable; /etc/init.d/firewall reload');
+			return ok();
+		}
+	},
+
+	multiwan_get: {
+		call: function() {
+			let u = cursor();
+			let st = sh('mwan3 interfaces 2>/dev/null');
+			return {
+				enabled: u.get('myownrouter', 'multiwan', 'enabled') == '1',
+				mode: u.get('myownrouter', 'multiwan', 'mode') ?? 'failover',
+				track: u.get('myownrouter', 'multiwan', 'track') ?? '1.1.1.1 8.8.8.8',
+				has_wwan: u.get('network', 'wwan') != null,
+				status: st,
+			};
+		}
+	},
+
+	multiwan_set: {
+		args: { enabled: false, mode: '', track: '' },
+		call: function(req) {
+			let a = req.args;
+			let u = cursor();
+			let mode = a.mode == 'balance' ? 'balance' : 'failover';
+			let track = filter(split(a.track || '1.1.1.1 8.8.8.8', /[ ,]+/), valid_ip4);
+			if (!length(track)) return fail('IPs de verificación inválidas');
+			u.set('myownrouter', 'multiwan', 'settings');
+			u.set('myownrouter', 'multiwan', 'enabled', a.enabled ? '1' : '0');
+			u.set('myownrouter', 'multiwan', 'mode', mode);
+			u.set('myownrouter', 'multiwan', 'track', join(' ', track));
+			u.save('myownrouter'); u.commit('myownrouter');
+			if (!a.enabled) { bg('/etc/init.d/mwan3 stop; /etc/init.d/mwan3 disable'); return ok(); }
+			// rebuild mwan3 from scratch
+			for (let t in ['interface', 'member', 'policy', 'rule']) {
+				let old = [];
+				u.foreach('mwan3', t, s => push(old, s['.name']));
+				for (let s in old) u.delete('mwan3', s);
+			}
+			let wans = ['wan'];
+			if (u.get('network', 'wwan')) push(wans, 'wwan');
+			let members = [];
+			let i = 0;
+			for (let w in wans) {
+				u.set('mwan3', w, 'interface');
+				u.set('mwan3', w, 'enabled', '1');
+				u.set('mwan3', w, 'family', 'ipv4');
+				u.set('mwan3', w, 'track_ip', track);
+				u.set('mwan3', w, 'track_method', 'ping');
+				u.set('mwan3', w, 'reliability', '1');
+				u.set('mwan3', w, 'interval', '5');
+				u.set('mwan3', w, 'down', '3');
+				u.set('mwan3', w, 'up', '3');
+				let m = `${w}_m`;
+				u.set('mwan3', m, 'member');
+				u.set('mwan3', m, 'interface', w);
+				u.set('mwan3', m, 'metric', mode == 'balance' ? '1' : `${++i}`);
+				u.set('mwan3', m, 'weight', '1');
+				push(members, m);
+			}
+			u.set('mwan3', 'mor', 'policy');
+			u.set('mwan3', 'mor', 'use_member', members);
+			u.set('mwan3', 'mor', 'last_resort', 'unreachable');
+			u.set('mwan3', 'default_rule', 'rule');
+			u.set('mwan3', 'default_rule', 'dest_ip', '0.0.0.0/0');
+			u.set('mwan3', 'default_rule', 'use_policy', 'mor');
+			u.set('mwan3', 'default_rule', 'family', 'ipv4');
+			u.save('mwan3'); u.commit('mwan3');
+			bg('/etc/init.d/mwan3 enable; /etc/init.d/mwan3 restart');
+			return ok();
+		}
+	},
+
+	packages: {
+		call: function() {
+			let res = [];
+			for (let l in split(sh('apk list -I'), '\n')) {
+				let m = match(l, /^(\S+)-([^-]+-r[0-9]+) /);
+				if (m) push(res, { name: m[1], version: m[2] });
+			}
+			return { installed: res };
+		}
+	},
+};
+
+return { myownrouter: methods };

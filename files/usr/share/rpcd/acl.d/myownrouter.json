@@ -1,0 +1,41 @@
+{
+	"myownrouter": {
+		"description": "MyOwnRouter web interface",
+		"read": {
+			"ubus": {
+				"myownrouter": [ "*" ],
+				"uci": [ "*" ],
+				"session": [ "*" ],
+				"system": [ "*" ],
+				"iwinfo": [ "*" ],
+				"network.interface": [ "*" ],
+				"network.interface.*": [ "*" ],
+				"network.wireless": [ "*" ],
+				"network.device": [ "*" ],
+				"luci": [ "*" ],
+				"luci-rpc": [ "*" ],
+				"file": [ "*" ]
+			},
+			"uci": [ "*" ],
+			"cgi-io": [ "upload", "download" ],
+			"file": { "/tmp/myownrouter-upload.bin": [ "read" ] }
+		},
+		"write": {
+			"ubus": {
+				"myownrouter": [ "*" ],
+				"uci": [ "*" ]
+			},
+			"uci": [ "*" ],
+			"cgi-io": [ "upload" ],
+			"file": { "/tmp/myownrouter-upload.bin": [ "write" ] }
+		}
+	},
+	"unauthenticated": {
+		"description": "MyOwnRouter login page",
+		"read": {
+			"ubus": {
+				"myownrouter": [ "state" ]
+			}
+		}
+	}
+}

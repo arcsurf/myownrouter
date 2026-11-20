@@ -1,0 +1,33 @@
+#!/bin/sh
+# Servicios opcionales apagados hasta que el usuario los active desde la web.
+for s in tailscale adguardhome tor zerotier openvpn ksmbd miniupnpd mwan3 sqm ttyd; do
+	[ -x /etc/init.d/$s ] && /etc/init.d/$s disable 2>/dev/null
+done
+uci -q set zerotier.global.enabled='0'
+uci -q delete zerotier.earth
+uci -q commit zerotier
+
+# SQM trae una sección de ejemplo sobre eth1 (que acá es LAN)
+for s in $(uci -q show sqm | sed -n 's/^sqm\.\([^.]*\)=queue$/\1/p'); do uci -q delete sqm.$s; done
+uci -q commit sqm
+
+# DDNS: borrar servicios de ejemplo
+for s in myddns_ipv4 myddns_ipv6; do uci -q delete ddns.$s; done
+uci -q commit ddns
+
+# mwan3: lo arma el backend; borrar el ejemplo
+for t in interface member policy rule; do
+	for s in $(uci -q show mwan3 | sed -n "s/^mwan3\.\([^.]*\)=$t\$/\1/p"); do uci -q delete mwan3.$s; done
+done
+uci -q commit mwan3
+
+# nlbwmon: contar solo las redes internas
+uci -q delete nlbwmon.@nlbwmon[0].local_network
+uci -q add_list nlbwmon.@nlbwmon[0].local_network='lan'
+uci -q add_list nlbwmon.@nlbwmon[0].local_network='guest'
+uci -q commit nlbwmon
+
+# LuCI sigue disponible en /cgi-bin/luci ("Configuración avanzada")
+uci -q set luci.main.lang='es'
+uci -q commit luci
+exit 0

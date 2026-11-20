@@ -1,0 +1,15 @@
+config settings 'wifi'
+	option security 'sae-mixed'
+
+config app 'adguard'
+	option enabled '0'
+
+config app 'tor'
+	option enabled '0'
+
+config app 'tailscale'
+	option enabled '0'
+
+config settings 'vpnpolicy'
+	option mode 'all'
+	option kill_switch '0'
