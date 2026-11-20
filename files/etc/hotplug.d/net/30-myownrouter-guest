@@ -1,0 +1,9 @@
+# Un 'wifi reload' puede recrear la interfaz VLAN de invitados sin volver a
+# agregarla al bridge: la reenganchamos.
+[ "$ACTION" = add ] || exit 0
+case "$DEVICENAME" in
+	phy*-ap*-guest)
+		[ -d /sys/class/net/br-guest ] || exit 0
+		[ -e "/sys/class/net/$DEVICENAME/master" ] || ip link set "$DEVICENAME" master br-guest
+		;;
+esac

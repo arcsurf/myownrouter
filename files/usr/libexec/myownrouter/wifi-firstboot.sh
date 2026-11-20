@@ -1,6 +1,10 @@
 #!/bin/sh
-# Espera la radio, genera /etc/config/wireless y deja una red principal (apagada
-# hasta que se complete el asistente) y una de invitados.
+# Espera la radio, genera /etc/config/wireless y deja la red principal apagada
+# hasta que se complete el asistente.
+# El MT7921 admite un solo AP: la red de invitados se implementa en el mismo SSID
+# con una contraseña propia (PPSK) que asigna la VLAN 'guest' (ver backend).
+# La clave principal también va como wifi-station: con sae_password_file
+# hostapd ignora wpa_passphrase para SAE.
 i=0
 while [ ! -e /sys/class/ieee80211/phy0 ] && [ $i -lt 60 ]; do sleep 2; i=$((i+1)); done
 [ -e /sys/class/ieee80211/phy0 ] || { logger -t myownrouter "sin radio WiFi"; exit 0; }
@@ -31,15 +35,9 @@ set wireless.main.ssid='MyOwnRouter-$mac'
 set wireless.main.encryption='sae-mixed'
 set wireless.main.key='myownrouter-$mac'
 set wireless.main.disabled='1'
-set wireless.guest=wifi-iface
-set wireless.guest.device='$radio'
-set wireless.guest.mode='ap'
-set wireless.guest.network='guest'
-set wireless.guest.ssid='MyOwnRouter-Guest-$mac'
-set wireless.guest.encryption='psk2'
-set wireless.guest.key='invitados-$mac'
-set wireless.guest.isolate='1'
-set wireless.guest.disabled='1'
+set wireless.main_sta=wifi-station
+set wireless.main_sta.iface='main'
+set wireless.main_sta.key='myownrouter-$mac'
 commit wireless
 UCI
 mkdir -p /etc/myownrouter && touch /etc/myownrouter/.wifi-done
