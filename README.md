@@ -1,5 +1,7 @@
 # MyOwnRouter
 
+**English** · [Español](README.es.md) · [Français](README.fr.md) · [Deutsch](README.de.md)
+
 Custom OpenWrt 25.12 (x86_64) firmware designed to run as a virtual machine (Proxmox VE or any KVM host),
 using PCI passthrough for a Wi-Fi card and spare physical Ethernet ports.
 It aims to offer a friendly, consumer-router style web interface on top of OpenWrt, with LuCI still available
@@ -71,7 +73,7 @@ The first NIC (virtio, on the WAN bridge) becomes WAN; every passed-through Ethe
 ## Development
 
 `./dev-sync.sh <router-ip>` copies `files/` to a running router and restarts rpcd, so UI/backend changes can be tested
-without rebuilding. Layout:
+without rebuilding (it skips `etc/config` and `etc/uci-defaults` so the router's real configuration is not overwritten). Layout:
 
 - `files/www/` — web UI (vanilla JS, no build step)
 - `files/usr/share/rpcd/ucode/myownrouter` — ubus backend (`ubus -v list myownrouter`)
