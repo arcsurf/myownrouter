@@ -1,0 +1,547 @@
+# MyOwnRouter UI strings. Columns: es (source) <TAB> en <TAB> fr <TAB> de
+# Edit here and run: python3 tools/build_i18n.py
+{0} d {1} h {2} min	{0} d {1} h {2} min	{0} j {1} h {2} min	{0} T {1} Std. {2} Min.
+{0} h {1} min	{0} h {1} min	{0} h {1} min	{0} Std. {1} Min.
+{0} min {1} s	{0} min {1} s	{0} min {1} s	{0} Min. {1} s
+Sin conexión con el router	No connection to the router	Pas de connexion avec le routeur	Keine Verbindung zum Router
+Respuesta inválida del router	Invalid response from the router	Réponse invalide du routeur	Ungültige Antwort vom Router
+Error	Error	Erreur	Fehler
+Sesión expirada	Session expired	Session expirée	Sitzung abgelaufen
+No encontrado	Not found	Introuvable	Nicht gefunden
+Mostrar	Show	Afficher	Anzeigen
+Sin elementos	No items	Aucun élément	Keine Einträge
+Cerrar	Close	Fermer	Schließen
+Cancelar	Cancel	Annuler	Abbrechen
+Aceptar	OK	OK	OK
+Lu	Mo	Lu	Mo
+Ma	Tu	Ma	Di
+Mi	We	Me	Mi
+Ju	Th	Je	Do
+Vi	Fr	Ve	Fr
+Sá	Sa	Sa	Sa
+Do	Su	Di	So
+La sesión expiró, volvé a ingresar.	Your session expired, please sign in again.	Votre session a expiré, veuillez vous reconnecter.	Ihre Sitzung ist abgelaufen, bitte erneut anmelden.
+Contraseña incorrecta	Wrong password	Mot de passe incorrect	Falsches Passwort
+Contraseña de administrador	Administrator password	Mot de passe administrateur	Administratorpasswort
+Ingresá la contraseña de administrador	Enter the administrator password	Saisissez le mot de passe administrateur	Geben Sie das Administratorpasswort ein
+Iniciar sesión	Sign in	Se connecter	Anmelden
+Mínimo 8 caracteres	At least 8 characters	8 caractères minimum	Mindestens 8 Zeichen
+Repetir contraseña	Repeat password	Répéter le mot de passe	Passwort wiederholen
+Nombre de la red WiFi	Wi-Fi network name	Nom du réseau Wi-Fi	Name des WLANs
+Bienvenido	Welcome	Bienvenue	Willkommen
+Elegí la contraseña de administrador del router	Choose the router administrator password	Choisissez le mot de passe administrateur du routeur	Wählen Sie das Administratorpasswort des Routers
+Contraseña	Password	Mot de passe	Passwort
+Confirmar	Confirm	Confirmer	Bestätigen
+Siguiente	Next	Suivant	Weiter
+Debe tener al menos 8 caracteres	Must be at least 8 characters long	Doit contenir au moins 8 caractères	Muss mindestens 8 Zeichen lang sein
+Las contraseñas no coinciden	Passwords do not match	Les mots de passe ne correspondent pas	Die Passwörter stimmen nicht überein
+Red WiFi	Wi-Fi network	Réseau Wi-Fi	WLAN
+Configurá la red inalámbrica principal (podés cambiarla después)	Set up the main wireless network (you can change it later)	Configurez le réseau sans fil principal (modifiable plus tard)	Richten Sie das Haupt-WLAN ein (später änderbar)
+Nombre (SSID)	Name (SSID)	Nom (SSID)	Name (SSID)
+Contraseña WiFi	Wi-Fi password	Mot de passe Wi-Fi	WLAN-Passwort
+Finalizar	Finish	Terminer	Fertigstellen
+La contraseña WiFi debe tener al menos 8 caracteres	The Wi-Fi password must be at least 8 characters long	Le mot de passe Wi-Fi doit contenir au moins 8 caractères	Das WLAN-Passwort muss mindestens 8 Zeichen lang sein
+Atrás	Back	Retour	Zurück
+Salir	Log out	Déconnexion	Abmelden
+ · MyOwnRouter	 · MyOwnRouter	 · MyOwnRouter	 · MyOwnRouter
+Cargando…	Loading…	Chargement…	Wird geladen…
+● Conectado a internet	● Connected to the internet	● Connecté à Internet	● Mit dem Internet verbunden
+● Sin internet	● No internet	● Pas d'Internet	● Kein Internet
+ · 	 · 	 · 	 ·
+Aplicando cambios…	Applying changes…	Application des modifications…	Änderungen werden übernommen…
+Inicio	Home	Accueil	Startseite
+Internet	Internet	Internet	Internet
+Conectado	Connected	Connecté	Verbunden
+Sin acceso a internet	No internet access	Pas d'accès à Internet	Kein Internetzugang
+Desconectado	Disconnected	Déconnecté	Getrennt
+Repetidor	Repeater	Répéteur	Repeater
+Cable	Cable	Câble	Kabel
+IP estática	Static IP	IP statique	Statische IP
+Puerta de enlace {0}	Gateway {0}	Passerelle {0}	Gateway {0}
+Sin WAN	No WAN	Pas de WAN	Kein WAN
+Router	Router	Routeur	Router
+Activo {0}	Up {0}	Actif depuis {0}	Aktiv seit {0}
+Clientes	Clients	Clients	Clients
+{0} por WiFi	{0} via Wi-Fi	{0} en Wi-Fi	{0} über WLAN
+conectados	connected	connectés	verbunden
+No se detectó ninguna placa WiFi.	No Wi-Fi card was detected.	Aucune carte Wi-Fi détectée.	Keine WLAN-Karte erkannt.
+Estado	Status	État	Status
+Encendida	On	Activé	Ein
+Apagada	Off	Désactivé	Aus
+Red	Network	Réseau	Netzwerk
+Banda	Band	Bande	Band
+{0} · canal {1} · {2}	{0} · channel {1} · {2}	{0} · canal {1} · {2}	{0} · Kanal {1} · {2}
+Invitados	Guests	Invités	Gäste
+Activa	Active	Actif	Aktiv
+Inactiva	Inactive	Inactif	Inaktiv
+No	No	Non	Nein
+Clientes WiFi	Wi-Fi clients	Clients Wi-Fi	WLAN-Clients
+No hay ningún cliente VPN conectado.	No VPN client is connected.	Aucun client VPN connecté.	Kein VPN-Client verbunden.
+Servidor WireGuard: {0}	WireGuard server: {0}	Serveur WireGuard : {0}	WireGuard-Server: {0}
+activo	on	actif	aktiv
+apagado	off	désactivé	aus
+CPU (carga 1 min)	CPU (1 min load)	CPU (charge 1 min)	CPU (Last 1 Min.)
+Memoria	Memory	Mémoire	Arbeitsspeicher
+Almacenamiento	Storage	Stockage	Speicher
+DNS WAN	WAN DNS	DNS WAN	WAN-DNS
+Total ↓ {0} · ↑ {1}	Total ↓ {0} · ↑ {1}	Total ↓ {0} · ↑ {1}	Gesamt ↓ {0} · ↑ {1}
+Tráfico WAN	WAN traffic	Trafic WAN	WAN-Verkehr
+Sistema	System	Système	System
+Configurar	Configure	Configurer	Konfigurieren
+Ver	View	Voir	Anzeigen
+Internet · Conexión	Internet · Connection	Internet · Connexion	Internet · Verbindung
+DHCP (automático)	DHCP (automatic)	DHCP (automatique)	DHCP (automatisch)
+Dirección IP	IP address	Adresse IP	IP-Adresse
+Máscara	Netmask	Masque	Netzmaske
+Puerta de enlace	Gateway	Passerelle	Gateway
+Usuario	Username	Utilisateur	Benutzername
+Nombre de host	Hostname	Nom d'hôte	Hostname
+Se envía al servidor DHCP de la red superior	Sent to the upstream DHCP server	Envoyé au serveur DHCP du réseau amont	Wird an den DHCP-Server des übergeordneten Netzes gesendet
+Servidores DNS	DNS servers	Serveurs DNS	DNS-Server
+Separados por espacio	Separated by spaces	Séparés par des espaces	Durch Leerzeichen getrennt
+Completá IP y puerta de enlace	Fill in the IP address and gateway	Renseignez l'IP et la passerelle	Bitte IP-Adresse und Gateway angeben
+Cambiar la conexión WAN	Change WAN connection	Modifier la connexion WAN	WAN-Verbindung ändern
+Estás conectado al router por su IP WAN ({0}). Si cambia, vas a tener que entrar por la nueva dirección o por la LAN.	You are connected to the router through its WAN IP ({0}). If it changes, you will have to use the new address or the LAN.	Vous êtes connecté au routeur via son IP WAN ({0}). Si elle change, il faudra utiliser la nouvelle adresse ou le LAN.	Sie sind über die WAN-IP ({0}) mit dem Router verbunden. Ändert sie sich, müssen Sie die neue Adresse oder das LAN verwenden.
+Aplicar	Apply	Appliquer	Übernehmen
+Conectada	Connected	Connectée	Verbunden
+Desconectada	Disconnected	Déconnectée	Getrennt
+Accesible	Reachable	Accessible	Erreichbar
+Sin acceso	No access	Pas d'accès	Kein Zugriff
+Interfaz	Interface	Interface	Schnittstelle
+Tiempo conectado	Connected for	Durée de connexion	Verbunden seit
+Configuración del puerto WAN	WAN port settings	Configuration du port WAN	WAN-Port-Einstellungen
+Tipo de conexión	Connection type	Type de connexion	Verbindungstyp
+DNS personalizados	Custom DNS	DNS personnalisés	Eigene DNS-Server
+Ignorar los DNS que entrega la red superior	Ignore the DNS servers provided by the upstream network	Ignorer les DNS fournis par le réseau amont	Vom übergeordneten Netz bereitgestellte DNS-Server ignorieren
+Vacío = automático	Empty = automatic	Vide = automatique	Leer = automatisch
+En la VM, el puerto WAN es la NIC virtual conectada al bridge del hipervisor. Si la red superior ya hace NAT (doble NAT), para publicar servicios hay que reenviar los puertos también en ese router.	In the VM, the WAN port is the virtual NIC attached to the hypervisor bridge. If the upstream network already does NAT (double NAT), ports must also be forwarded on that router to publish services.	Dans la VM, le port WAN est la carte réseau virtuelle reliée au bridge de l'hyperviseur. Si le réseau amont fait déjà du NAT (double NAT), il faut aussi rediriger les ports sur ce routeur pour publier des services.	In der VM ist der WAN-Port die virtuelle Netzwerkkarte an der Bridge des Hypervisors. Macht das übergeordnete Netz bereits NAT (doppeltes NAT), müssen Ports zum Veröffentlichen von Diensten auch dort weitergeleitet werden.
+Guardar	Save	Enregistrer	Speichern
+Internet · Repetidor	Internet · Repeater	Internet · Répéteur	Internet · Repeater
+No hay placa WiFi.	No Wi-Fi card.	Pas de carte Wi-Fi.	Keine WLAN-Karte.
+Conectar a «{0}»	Connect to "{0}"	Se connecter à « {0} »	Mit „{0}“ verbinden
+{0} · canal {1}	{0} · channel {1}	{0} · canal {1}	{0} · Kanal {1}
+Señal	Signal	Signal	Signal
+Seguridad	Security	Sécurité	Sicherheit
+Este WiFi tiene una sola radio: tu red se va a mover a la banda y al canal de la red repetida, y los clientes WiFi se reconectan.	This Wi-Fi has a single radio: your network will move to the band and channel of the repeated network, and Wi-Fi clients will reconnect.	Ce Wi-Fi n'a qu'une radio : votre réseau passera sur la bande et le canal du réseau répété, et les clients Wi-Fi se reconnecteront.	Dieses WLAN hat nur ein Funkmodul: Ihr Netz wechselt auf Band und Kanal des wiederholten Netzes, und WLAN-Clients verbinden sich neu.
+Conectar	Connect	Connecter	Verbinden
+Buscando redes…	Searching for networks…	Recherche des réseaux…	Netzwerke werden gesucht…
+Abierta	Open	Ouvert	Offen
+Banda / canal	Band / channel	Bande / canal	Band / Kanal
+No se encontraron redes	No networks found	Aucun réseau trouvé	Keine Netzwerke gefunden
+Conexión como repetidor	Repeater connection	Connexion en répéteur	Repeater-Verbindung
+Desactivado	Disabled	Désactivé	Deaktiviert
+Conectando / sin conexión	Connecting / no connection	Connexion en cours / pas de connexion	Verbindet / keine Verbindung
+IP obtenida	Obtained IP	IP obtenue	Erhaltene IP
+El router no está conectado a ninguna red WiFi como cliente.	The router is not connected to any Wi-Fi network as a client.	Le routeur n'est connecté à aucun réseau Wi-Fi en tant que client.	Der Router ist mit keinem WLAN als Client verbunden.
+El repetidor usa una red WiFi existente como salida a internet (WAN inalámbrica). Con la WAN por cable activa, queda como respaldo con menor prioridad; para conmutación automática activá Multi-WAN.	The repeater uses an existing Wi-Fi network as internet uplink (wireless WAN). While the cable WAN is up it acts as a lower-priority backup; enable Multi-WAN for automatic failover.	Le répéteur utilise un réseau Wi-Fi existant comme sortie Internet (WAN sans fil). Tant que le WAN filaire est actif, il sert de secours de moindre priorité ; activez le Multi-WAN pour une bascule automatique.	Der Repeater nutzt ein vorhandenes WLAN als Internetzugang (drahtloses WAN). Solange das Kabel-WAN aktiv ist, dient er als Reserve mit niedrigerer Priorität; für automatisches Umschalten Multi-WAN aktivieren.
+Desconectar	Disconnect	Déconnecter	Trennen
+Reconectar	Reconnect	Reconnecter	Neu verbinden
+Redes disponibles	Available networks	Réseaux disponibles	Verfügbare Netzwerke
+Buscar redes	Scan for networks	Rechercher des réseaux	Netzwerke suchen
+Internet · Multi-WAN	Internet · Multi-WAN	Internet · Multi-WAN	Internet · Multi-WAN
+Conmutación por falla (failover)	Failover	Basculement (failover)	Ausfallsicherung (Failover)
+Balanceo de carga	Load balancing	Répartition de charge	Lastverteilung
+Activar	Enable	Activer	Aktivieren
+Modo	Mode	Mode	Modus
+Failover: el cable es la principal y el repetidor el respaldo	Failover: cable is primary and the repeater is the backup	Basculement : le câble est principal et le répéteur sert de secours	Failover: Kabel ist primär, der Repeater die Reserve
+IPs de verificación	Check IPs	IP de vérification	Prüf-IPs
+Se hace ping a estas IPs para detectar si cada salida tiene internet	These IPs are pinged to detect whether each uplink has internet	Ces IP sont pinguées pour savoir si chaque sortie a Internet	Diese IPs werden angepingt, um zu prüfen, ob jeder Zugang Internet hat
+Todavía no hay una segunda salida: configurá el Repetidor para tener WAN por WiFi.	There is no second uplink yet: set up the Repeater to get WAN over Wi-Fi.	Il n'y a pas encore de seconde sortie : configurez le Répéteur pour avoir un WAN en Wi-Fi.	Es gibt noch keinen zweiten Zugang: Richten Sie den Repeater für WAN über WLAN ein.
+WPA2/WPA3 mixto (recomendado)	WPA2/WPA3 mixed (recommended)	WPA2/WPA3 mixte (recommandé)	WPA2/WPA3 gemischt (empfohlen)
+Abierta (sin contraseña)	Open (no password)	Ouvert (sans mot de passe)	Offen (ohne Passwort)
+Argentina	Argentina	Argentine	Argentinien
+Brasil	Brazil	Brésil	Brasilien
+Chile	Chile	Chili	Chile
+Uruguay	Uruguay	Uruguay	Uruguay
+Paraguay	Paraguay	Paraguay	Paraguay
+Bolivia	Bolivia	Bolivie	Bolivien
+Perú	Peru	Pérou	Peru
+Colombia	Colombia	Colombie	Kolumbien
+México	Mexico	Mexique	Mexiko
+España	Spain	Espagne	Spanien
+Estados Unidos	United States	États-Unis	Vereinigte Staaten
+Alemania	Germany	Allemagne	Deutschland
+Reino Unido	United Kingdom	Royaume-Uni	Vereinigtes Königreich
+Inalámbrico	Wireless	Sans fil	WLAN
+No se detectó ninguna placa WiFi. En la VM, revisá que la placa esté asignada con PCI passthrough.	No Wi-Fi card was detected. In the VM, check that the card is assigned via PCI passthrough.	Aucune carte Wi-Fi détectée. Dans la VM, vérifiez que la carte est attribuée en PCI passthrough.	Keine WLAN-Karte erkannt. Prüfen Sie in der VM, ob die Karte per PCI-Passthrough zugewiesen ist.
+Máxima (automática)	Maximum (automatic)	Maximale (automatique)	Maximal (automatisch)
+Automático	Automatic	Automatique	Automatisch
+La contraseña debe tener al menos 8 caracteres	The password must be at least 8 characters long	Le mot de passe doit contenir au moins 8 caractères	Das Passwort muss mindestens 8 Zeichen lang sein
+Red WiFi principal	Main Wi-Fi network	Réseau Wi-Fi principal	Haupt-WLAN
+Con la red de invitados activa se usa WPA2 (ver Red de invitados)	With the guest network enabled WPA2 is used (see Guest network)	Avec le réseau invités actif, le WPA2 est utilisé (voir Réseau invités)	Bei aktivem Gastnetz wird WPA2 verwendet (siehe Gastnetz)
+Ocultar SSID	Hide SSID	Masquer le SSID	SSID verbergen
+Ahora: canal {0} ({1} GHz) · {2} · {3}	Now: channel {0} ({1} GHz) · {2} · {3}	Actuellement : canal {0} ({1} GHz) · {2} · {3}	Aktuell: Kanal {0} ({1} GHz) · {2} · {3}
+Radio	Radio	Radio	Funkmodul
+Canal	Channel	Canal	Kanal
+Ancho de canal	Channel width	Largeur de canal	Kanalbreite
+Potencia de transmisión	Transmit power	Puissance d'émission	Sendeleistung
+Aislamiento de clientes	Client isolation	Isolation des clients	Client-Isolierung
+Los dispositivos WiFi no se ven entre sí	Wi-Fi devices cannot see each other	Les appareils Wi-Fi ne se voient pas entre eux	WLAN-Geräte sehen sich gegenseitig nicht
+País	Country	Pays	Land
+Define canales y potencia legales	Defines the legal channels and power	Définit les canaux et la puissance autorisés	Legt zulässige Kanäle und Leistung fest
+Esta placa ({0}) tiene una sola radio: trabaja en una banda por vez y admite una sola red emitida. La red de invitados usa el mismo SSID con otra contraseña.	This card ({0}) has a single radio: it works on one band at a time and supports only one broadcast network. The guest network uses the same SSID with a different password.	Cette carte ({0}) n'a qu'une radio : elle fonctionne sur une bande à la fois et ne diffuse qu'un seul réseau. Le réseau invités utilise le même SSID avec un autre mot de passe.	Diese Karte ({0}) hat nur ein Funkmodul: Sie arbeitet jeweils in einem Band und sendet nur ein Netz aus. Das Gastnetz nutzt dieselbe SSID mit einem anderen Passwort.
+Red de invitados	Guest network	Réseau invités	Gastnetz
+Configurar red de invitados	Configure guest network	Configurer le réseau invités	Gastnetz konfigurieren
+Red · Invitados	Network · Guests	Réseau · Invités	Netzwerk · Gäste
+WiFi de invitados	Guest Wi-Fi	Wi-Fi invités	Gast-WLAN
+Contraseña de invitados	Guest password	Mot de passe invités	Gastpasswort
+Distinta de la principal	Different from the main one	Différent du principal	Anders als das Hauptpasswort
+Los invitados se conectan a la misma red «	Guests join the same network "	Les invités se connectent au même réseau « 	Gäste verbinden sich mit demselben Netz „
+» pero con esta contraseña: quedan en una red aislada con salida a internet, sin acceso a tu LAN ni a la administración del router.	" but with this password: they land on an isolated network with internet access, without access to your LAN or to the router administration.	 » mais avec ce mot de passe : ils arrivent sur un réseau isolé avec accès à Internet, sans accès à votre LAN ni à l'administration du routeur.	“, aber mit diesem Passwort: Sie landen in einem isolierten Netz mit Internetzugang, ohne Zugriff auf Ihr LAN oder die Router-Verwaltung.
+Con invitados activo la red pasa a WPA2: el protocolo WPA3 (SAE) no permite elegir la red según la contraseña.	With guests enabled the network switches to WPA2: the WPA3 (SAE) protocol cannot pick the network based on the password.	Avec les invités actifs, le réseau passe en WPA2 : le protocole WPA3 (SAE) ne permet pas de choisir le réseau selon le mot de passe.	Mit aktivem Gastzugang wechselt das Netz auf WPA2: Das WPA3-Protokoll (SAE) kann das Netz nicht anhand des Passworts wählen.
+Red de invitados (IP)	Guest network (IP)	Réseau invités (IP)	Gastnetz (IP)
+IP del router	Router IP	IP du routeur	Router-IP
+Inicio DHCP	DHCP start	Début DHCP	DHCP-Start
+Cantidad de direcciones	Number of addresses	Nombre d'adresses	Anzahl Adressen
+Todos	All	Tous	Alle
+Conectados	Online	Connectés	Online
+Bloqueados	Blocked	Bloqués	Gesperrt
+Nombre	Name	Nom	Name
+Editar dispositivo	Edit device	Modifier l'appareil	Gerät bearbeiten
+IP actual	Current IP	IP actuelle	Aktuelle IP
+Reservar IP	Reserve IP	Réserver l'IP	IP reservieren
+IP reservada	Reserved IP	IP réservée	Reservierte IP
+Siempre recibirá esta IP por DHCP	It will always get this IP via DHCP	Il recevra toujours cette IP par DHCP	Erhält per DHCP immer diese IP
+Dispositivo	Device	Appareil	Gerät
+Conexión	Connection	Connexion	Verbindung
+Tráfico	Traffic	Trafic	Datenverkehr
+Desconocido	Unknown	Inconnu	Unbekannt
+reservada	reserved	réservée	reserviert
+Acceso permitido	Access allowed	Accès autorisé	Zugriff erlaubt
+Dispositivo bloqueado	Device blocked	Appareil bloqué	Gerät gesperrt
+Editar	Edit	Modifier	Bearbeiten
+No hay dispositivos	No devices	Aucun appareil	Keine Geräte
+Dispositivos	Devices	Appareils	Geräte
+Actualizar	Refresh	Actualiser	Aktualisieren
+VPN · Panel	VPN · Dashboard	VPN · Tableau de bord	VPN · Übersicht
+— elegir perfil —	— choose profile —	— choisir un profil —	— Profil wählen —
+Cliente VPN	VPN client	Client VPN	VPN-Client
+Perfil	Profile	Profil	Profil
+Tipo	Type	Type	Typ
+Conectando…	Connecting…	Connexion…	Verbinde…
+Ninguna VPN cliente activa. Todo el tráfico sale directo por la WAN.	No VPN client is active. All traffic goes straight out through the WAN.	Aucun client VPN actif. Tout le trafic sort directement par le WAN.	Kein VPN-Client aktiv. Der gesamte Verkehr geht direkt über das WAN.
+Agregar un perfil WireGuard u OpenVPN	Add a WireGuard or OpenVPN profile	Ajouter un profil WireGuard ou OpenVPN	WireGuard- oder OpenVPN-Profil hinzufügen
+Servidor WireGuard	WireGuard server	Serveur WireGuard	WireGuard-Server
+Activo	Active	Actif	Aktiv
+Apagado	Off	Désactivé	Aus
+Puerto	Port	Port	Port
+VPN · Clientes	VPN · Clients	VPN · Clients	VPN · Clients
+ej: casa, proton_ar	e.g. home, proton_us	ex. : maison, proton_fr	z. B. zuhause, proton_de
+Pegá la configuración o cargá el archivo	Paste the configuration or load the file	Collez la configuration ou chargez le fichier	Konfiguration einfügen oder Datei laden
+Cargar archivo…	Load file…	Charger un fichier…	Datei laden…
+Agregar perfil VPN	Add VPN profile	Ajouter un profil VPN	VPN-Profil hinzufügen
+Agregar	Add	Ajouter	Hinzufügen
+Perfiles	Profiles	Profils	Profile
+Servidor	Server	Serveur	Server
+Conectando	Connecting	Connexion	Verbinde
+Eliminar	Delete	Supprimer	Löschen
+Eliminar perfil	Delete profile	Supprimer le profil	Profil löschen
+¿Eliminar «{0}»?	Delete "{0}"?	Supprimer « {0} » ?	„{0}“ löschen?
+Todavía no agregaste perfiles	You have not added any profiles yet	Vous n'avez encore ajouté aucun profil	Sie haben noch keine Profile hinzugefügt
+Agregar perfil	Add profile	Ajouter un profil	Profil hinzufügen
+Política	Policy	Politique	Richtlinie
+Con un cliente VPN conectado, todo el tráfico de la LAN sale por el túnel (solo uno activo a la vez). La red de invitados sale siempre directo. Para reglas por dispositivo o por dominio usá «Policy Based Routing» en la configuración avanzada.	With a VPN client connected, all LAN traffic goes through the tunnel (only one active at a time). The guest network always goes out directly. For per-device or per-domain rules use "Policy Based Routing" in the advanced settings.	Avec un client VPN connecté, tout le trafic du LAN passe par le tunnel (un seul actif à la fois). Le réseau invités sort toujours en direct. Pour des règles par appareil ou par domaine, utilisez « Policy Based Routing » dans la configuration avancée.	Bei verbundenem VPN-Client läuft der gesamte LAN-Verkehr durch den Tunnel (jeweils nur einer aktiv). Das Gastnetz geht immer direkt hinaus. Für Regeln pro Gerät oder Domain nutzen Sie „Policy Based Routing“ in den erweiterten Einstellungen.
+Bloquear internet si la VPN cae (kill switch)	Block internet if the VPN drops (kill switch)	Bloquer Internet si le VPN tombe (kill switch)	Internet sperren, wenn das VPN ausfällt (Kill Switch)
+Reglas avanzadas (PBR)	Advanced rules (PBR)	Règles avancées (PBR)	Erweiterte Regeln (PBR)
+VPN · Servidor WireGuard	VPN · WireGuard server	VPN · Serveur WireGuard	VPN · WireGuard-Server
+mi-casa.duckdns.org o IP pública	my-home.duckdns.org or public IP	ma-maison.duckdns.org ou IP publique	mein-zuhause.duckdns.org oder öffentliche IP
+Cliente «{0}»	Client "{0}"	Client « {0} »	Client „{0}“
+Descargar .conf	Download .conf	Télécharger le .conf	.conf herunterladen
+ej: celular	e.g. phone	ex. : téléphone	z. B. Handy
+Nuevo cliente	New client	Nouveau client	Neuer Client
+Crear	Create	Créer	Erstellen
+nunca	never	jamais	nie
+hace {0}	{0} ago	il y a {0}	vor {0}
+Puerto UDP	UDP port	Port UDP	UDP-Port
+Subred del túnel	Tunnel subnet	Sous-réseau du tunnel	Tunnel-Subnetz
+Dirección pública	Public address	Adresse publique	Öffentliche Adresse
+DNS dinámico o IP pública con la que te conectás desde afuera	Dynamic DNS or public IP you use to connect from outside	DNS dynamique ou IP publique pour vous connecter depuis l'extérieur	Dynamisches DNS oder öffentliche IP für Verbindungen von außen
+Todo el tráfico por el túnel	All traffic through the tunnel	Tout le trafic par le tunnel	Gesamter Verkehr durch den Tunnel
+Si se apaga, los clientes solo acceden a la LAN	If off, clients only reach the LAN	Si désactivé, les clients n'accèdent qu'au LAN	Wenn aus, erreichen Clients nur das LAN
+Clave pública	Public key	Clé publique	Öffentlicher Schlüssel
+Este router está detrás de otro (WAN {0}). Para conectarte desde internet, reenviá el puerto {1}/UDP del router principal hacia esa IP.	This router sits behind another one (WAN {0}). To connect from the internet, forward port {1}/UDP on the main router to that IP.	Ce routeur est derrière un autre (WAN {0}). Pour vous connecter depuis Internet, redirigez le port {1}/UDP du routeur principal vers cette IP.	Dieser Router steht hinter einem anderen (WAN {0}). Für Verbindungen aus dem Internet leiten Sie Port {1}/UDP am Hauptrouter an diese IP weiter.
+Último contacto	Last handshake	Dernier contact	Letzter Kontakt
+ · ↑ 	 · ↑ 	 · ↑ 	 · ↑
+Eliminar cliente	Delete client	Supprimer le client	Client löschen
+Sin clientes	No clients	Aucun client	Keine Clients
+Agregar cliente	Add client	Ajouter un client	Client hinzufügen
+VPN · Tor	VPN · Tor	VPN · Tor	VPN · Tor
+Tor activado (puede tardar un minuto en conectar)	Tor enabled (it may take a minute to connect)	Tor activé (la connexion peut prendre une minute)	Tor aktiviert (der Verbindungsaufbau kann eine Minute dauern)
+Tor desactivado	Tor disabled	Tor désactivé	Tor deaktiviert
+Enviar el tráfico de la LAN por Tor	Send LAN traffic through Tor	Envoyer le trafic du LAN via Tor	LAN-Verkehr über Tor leiten
+Todo el tráfico TCP y las consultas DNS de la LAN pasan por la red Tor (anónimo pero lento; UDP no funciona). Permite abrir direcciones .onion. Los invitados no se ven afectados.	All TCP traffic and DNS queries from the LAN go through the Tor network (anonymous but slow; UDP does not work). .onion addresses can be opened. Guests are not affected.	Tout le trafic TCP et les requêtes DNS du LAN passent par le réseau Tor (anonyme mais lent ; l'UDP ne fonctionne pas). Les adresses .onion sont accessibles. Les invités ne sont pas concernés.	Sämtlicher TCP-Verkehr und alle DNS-Anfragen des LANs laufen über das Tor-Netz (anonym, aber langsam; UDP funktioniert nicht). .onion-Adressen sind erreichbar. Gäste sind nicht betroffen.
+Aplicaciones · Complementos	Applications · Plug-ins	Applications · Extensions	Anwendungen · Erweiterungen
+Buscar paquete…	Search package…	Rechercher un paquet…	Paket suchen…
+Paquete	Package	Paquet	Paket
+Versión	Version	Version	Version
+{0} paquetes instalados	{0} installed packages	{0} paquets installés	{0} installierte Pakete
+Instalar más paquetes	Install more packages	Installer d'autres paquets	Weitere Pakete installieren
+Aplicaciones · AdGuard Home	Applications · AdGuard Home	Applications · AdGuard Home	Anwendungen · AdGuard Home
+Bloqueo de publicidad y rastreadores	Ad and tracker blocking	Blocage des publicités et traqueurs	Werbe- und Tracker-Blocker
+AdGuard Home activado	AdGuard Home enabled	AdGuard Home activé	AdGuard Home aktiviert
+AdGuard Home desactivado	AdGuard Home disabled	AdGuard Home désactivé	AdGuard Home deaktiviert
+En ejecución	Running	En cours d'exécution	Läuft
+Detenido	Stopped	Arrêté	Gestoppt
+Panel de AdGuard	AdGuard dashboard	Tableau de bord AdGuard	AdGuard-Oberfläche
+El DNS del router (dnsmasq) reenvía las consultas a AdGuard Home, que filtra y resuelve por DNS cifrado (Quad9 / Cloudflare). El panel de AdGuard solo es accesible desde la LAN y no tiene contraseña propia.	The router DNS (dnsmasq) forwards queries to AdGuard Home, which filters and resolves them over encrypted DNS (Quad9 / Cloudflare). The AdGuard dashboard is only reachable from the LAN and has no password of its own.	Le DNS du routeur (dnsmasq) transmet les requêtes à AdGuard Home, qui filtre et résout via DNS chiffré (Quad9 / Cloudflare). Le tableau de bord AdGuard n'est accessible que depuis le LAN et n'a pas de mot de passe propre.	Das Router-DNS (dnsmasq) leitet Anfragen an AdGuard Home weiter, das filtert und über verschlüsseltes DNS (Quad9 / Cloudflare) auflöst. Die AdGuard-Oberfläche ist nur aus dem LAN erreichbar und hat kein eigenes Passwort.
+Aplicaciones · DNS dinámico	Applications · Dynamic DNS	Applications · DNS dynamique	Anwendungen · Dynamisches DNS
+usuario (en DuckDNS: el dominio sin .duckdns.org)	username (DuckDNS: the domain without .duckdns.org)	utilisateur (DuckDNS : le domaine sans .duckdns.org)	Benutzer (DuckDNS: die Domain ohne .duckdns.org)
+contraseña / token	password / token	mot de passe / jeton	Passwort / Token
+DNS dinámico	Dynamic DNS	DNS dynamique	Dynamisches DNS
+Proveedor	Provider	Fournisseur	Anbieter
+Dominio	Domain	Domaine	Domain
+Contraseña / token	Password / token	Mot de passe / jeton	Passwort / Token
+La IP pública se detecta consultando un servicio web, así funciona aunque este router esté detrás de otro (doble NAT).	The public IP is detected through a web service, so it works even if this router is behind another one (double NAT).	L'IP publique est détectée via un service web, cela fonctionne donc même si ce routeur est derrière un autre (double NAT).	Die öffentliche IP wird über einen Webdienst ermittelt; das funktioniert auch, wenn dieser Router hinter einem anderen steht (doppeltes NAT).
+Aplicaciones · Almacenamiento en red	Applications · Network storage	Applications · Stockage réseau	Anwendungen · Netzwerkspeicher
+Carpeta compartida (SMB)	Shared folder (SMB)	Dossier partagé (SMB)	Freigegebener Ordner (SMB)
+Nombre del recurso	Share name	Nom du partage	Freigabename
+Carpeta en el router	Folder on the router	Dossier sur le routeur	Ordner auf dem Router
+Se crea si no existe. Para más espacio agregá un disco virtual a la VM y montalo ahí.	Created if it does not exist. For more space add a virtual disk to the VM and mount it there.	Créé s'il n'existe pas. Pour plus d'espace, ajoutez un disque virtuel à la VM et montez-le à cet endroit.	Wird angelegt, falls nicht vorhanden. Für mehr Platz fügen Sie der VM eine virtuelle Festplatte hinzu und binden sie dort ein.
+Solo lectura	Read only	Lecture seule	Nur lesen
+Acceso de invitado (sin usuario) desde la LAN: {0}	Guest access (no user) from the LAN: {0}	Accès invité (sans utilisateur) depuis le LAN : {0}	Gastzugriff (ohne Benutzer) aus dem LAN: {0}
+Aplicaciones · Control parental	Applications · Parental control	Applications · Contrôle parental	Anwendungen · Kindersicherung
+Bloqueo por horario	Scheduled block	Blocage horaire	Zeitgesteuerte Sperre
+Días	Days	Jours	Tage
+Bloquear desde	Block from	Bloquer de	Sperren ab
+Hasta	Until	Jusqu'à	Bis
+Si el horario cruza la medianoche se crean dos reglas.	If the schedule crosses midnight two rules are created.	Si l'horaire passe minuit, deux règles sont créées.	Geht der Zeitraum über Mitternacht, werden zwei Regeln angelegt.
+Elegí un dispositivo	Choose a device	Choisissez un appareil	Wählen Sie ein Gerät
+Bloqueos por horario	Scheduled blocks	Blocages horaires	Zeitgesteuerte Sperren
+Horario	Schedule	Horaire	Zeitraum
+todos	all	tous	alle
+Sin reglas	No rules	Aucune règle	Keine Regeln
+Para cortar internet a un dispositivo en el momento usá el interruptor «Internet» en Clientes.	To cut a device's internet right away use the "Internet" switch in Clients.	Pour couper Internet à un appareil immédiatement, utilisez l'interrupteur « Internet » dans Clients.	Um einem Gerät sofort das Internet zu sperren, nutzen Sie den Schalter „Internet“ unter Clients.
+Agregar regla	Add rule	Ajouter une règle	Regel hinzufügen
+Aplicaciones · ZeroTier	Applications · ZeroTier	Applications · ZeroTier	Anwendungen · ZeroTier
+ID de red (16 caracteres)	Network ID (16 characters)	ID de réseau (16 caractères)	Netzwerk-ID (16 Zeichen)
+ID de red	Network ID	ID de réseau	Netzwerk-ID
+Después de unirte, autorizá este equipo en el panel de ZeroTier (my.zerotier.com). La interfaz ZeroTier queda en la zona LAN.	After joining, authorize this device in the ZeroTier dashboard (my.zerotier.com). The ZeroTier interface is placed in the LAN zone.	Après avoir rejoint le réseau, autorisez cet appareil dans le tableau de bord ZeroTier (my.zerotier.com). L'interface ZeroTier est placée dans la zone LAN.	Autorisieren Sie dieses Gerät nach dem Beitritt in der ZeroTier-Oberfläche (my.zerotier.com). Die ZeroTier-Schnittstelle liegt in der LAN-Zone.
+Dirección del nodo	Node address	Adresse du nœud	Knotenadresse
+En línea	Online	En ligne	Online
+Sí	Yes	Oui	Ja
+Sin redes	No networks	Aucun réseau	Keine Netzwerke
+Aplicaciones · Tailscale	Applications · Tailscale	Applications · Tailscale	Anwendungen · Tailscale
+Servicio	Service	Service	Dienst
+Equipo	Device	Appareil	Gerät
+IPs Tailscale	Tailscale IPs	IP Tailscale	Tailscale-IPs
+Otros equipos	Other devices	Autres appareils	Andere Geräte
+Inicio de sesión	Sign-in	Connexion	Anmeldung
+Autorizar este router en Tailscale ↗	Authorize this router in Tailscale ↗	Autoriser ce routeur dans Tailscale ↗	Diesen Router in Tailscale autorisieren ↗
+esperando enlace…	waiting for link…	en attente du lien…	warte auf Link…
+Compartir la LAN (subnet router)	Share the LAN (subnet router)	Partager le LAN (subnet router)	LAN freigeben (Subnet-Router)
+Ofrecer como nodo de salida	Offer as exit node	Proposer comme nœud de sortie	Als Exit-Node anbieten
+Las rutas y el nodo de salida hay que aprobarlos en el panel de Tailscale.	Routes and the exit node must be approved in the Tailscale dashboard.	Les routes et le nœud de sortie doivent être approuvés dans le tableau de bord Tailscale.	Routen und Exit-Node müssen in der Tailscale-Oberfläche genehmigt werden.
+Cerrar sesión	Sign out	Se déconnecter	Abmelden
+Iniciando Tailscale… el enlace de autorización aparece en unos segundos	Starting Tailscale… the authorization link appears in a few seconds	Démarrage de Tailscale… le lien d'autorisation apparaît dans quelques secondes	Tailscale startet… der Autorisierungslink erscheint in wenigen Sekunden
+Tailscale detenido	Tailscale stopped	Tailscale arrêté	Tailscale gestoppt
+Red · LAN y DHCP	Network · LAN and DHCP	Réseau · LAN et DHCP	Netzwerk · LAN und DHCP
+1 día	1 day	1 jour	1 Tag
+7 días	7 days	7 jours	7 Tage
+Cambiar IP de la LAN	Change LAN IP	Modifier l'IP du LAN	LAN-IP ändern
+Los dispositivos de la LAN van a tener que renovar su IP (desconectar y reconectar).	LAN devices will have to renew their IP (disconnect and reconnect).	Les appareils du LAN devront renouveler leur IP (se déconnecter puis se reconnecter).	LAN-Geräte müssen ihre IP erneuern (trennen und neu verbinden).
+Cambiando la IP del router a {0}…	Changing the router IP to {0}…	Changement de l'IP du routeur en {0}…	Router-IP wird auf {0} geändert…
+Ingresar MAC manualmente	Enter MAC manually	Saisir la MAC manuellement	MAC manuell eingeben
+Router en la LAN	Router on the LAN	Routeur sur le LAN	Router im LAN
+Servidor DHCP	DHCP server	Serveur DHCP	DHCP-Server
+Primera dirección	First address	Première adresse	Erste Adresse
+Desde {0}	From {0}	À partir de {0}	Ab {0}
+Duración de la concesión	Lease time	Durée du bail	Lease-Dauer
+Direcciones reservadas	Reserved addresses	Adresses réservées	Reservierte Adressen
+Sin reservas	No reservations	Aucune réservation	Keine Reservierungen
+Red · Reenvío de puertos	Network · Port forwarding	Réseau · Redirection de ports	Netzwerk · Portweiterleitung
+ej: servidor-web	e.g. web-server	ex. : serveur-web	z. B. webserver
+TCP y UDP	TCP and UDP	TCP et UDP	TCP und UDP
+Elegir dispositivo…	Choose device…	Choisir un appareil…	Gerät wählen…
+igual al externo	same as external	identique à l'externe	wie extern
+Nueva regla	New rule	Nouvelle règle	Neue Regel
+Protocolo	Protocol	Protocole	Protokoll
+Puerto externo	External port	Port externe	Externer Port
+IP interna	Internal IP	IP interne	Interne IP
+Puerto interno	Internal port	Port interne	Interner Port
+Completá puerto externo e IP interna	Fill in the external port and internal IP	Renseignez le port externe et l'IP interne	Externen Port und interne IP angeben
+Reglas	Rules	Règles	Regeln
+Destino	Destination	Destination	Ziel
+Recordá que este router está detrás de otro: el puerto también hay que reenviarlo en el router principal hacia {0}.	Remember this router sits behind another one: the port must also be forwarded on the main router to {0}.	N'oubliez pas que ce routeur est derrière un autre : le port doit aussi être redirigé sur le routeur principal vers {0}.	Denken Sie daran, dass dieser Router hinter einem anderen steht: Der Port muss auch am Hauptrouter an {0} weitergeleitet werden.
+la IP WAN	the WAN IP	l'IP WAN	die WAN-IP
+Red · Firewall	Network · Firewall	Réseau · Pare-feu	Netzwerk · Firewall
+Abrir puerto en el router	Open a port on the router	Ouvrir un port sur le routeur	Port am Router öffnen
+Abrir	Open	Ouvrir	Öffnen
+Puerto inválido	Invalid port	Port invalide	Ungültiger Port
+Acceso desde la WAN	Access from the WAN	Accès depuis le WAN	Zugriff aus dem WAN
+Administración desde redes privadas de la WAN	Management from private WAN networks	Administration depuis les réseaux privés du WAN	Verwaltung aus privaten WAN-Netzen
+Web (80/443) y SSH desde 10.x, 172.16-31.x y 192.168.x del lado WAN	Web (80/443) and SSH from 10.x, 172.16-31.x and 192.168.x on the WAN side	Web (80/443) et SSH depuis 10.x, 172.16-31.x et 192.168.x côté WAN	Web (80/443) und SSH aus 10.x, 172.16-31.x und 192.168.x auf der WAN-Seite
+Responder ping desde la WAN	Answer ping from the WAN	Répondre au ping depuis le WAN	Auf Ping aus dem WAN antworten
+Protección SYN flood	SYN flood protection	Protection SYN flood	SYN-Flood-Schutz
+Si desactivás la administración desde la WAN, solo vas a poder entrar al router desde la LAN o la WiFi.	If you disable management from the WAN, you will only be able to reach the router from the LAN or Wi-Fi.	Si vous désactivez l'administration depuis le WAN, vous ne pourrez accéder au routeur que depuis le LAN ou le Wi-Fi.	Wenn Sie die Verwaltung aus dem WAN deaktivieren, erreichen Sie den Router nur noch über LAN oder WLAN.
+Puertos abiertos en el router	Ports open on the router	Ports ouverts sur le routeur	Am Router geöffnete Ports
+Ninguno	None	Aucun	Keine
+Abrir puerto	Open port	Ouvrir un port	Port öffnen
+Zonas, reglas de tráfico y NAT avanzadas:	Zones, traffic rules and advanced NAT:	Zones, règles de trafic et NAT avancé :	Zonen, Verkehrsregeln und erweitertes NAT:
+Firewall en LuCI ↗	Firewall in LuCI ↗	Pare-feu dans LuCI ↗	Firewall in LuCI ↗
+Personalizado	Custom	Personnalisé	Benutzerdefiniert
+Cloudflare	Cloudflare	Cloudflare	Cloudflare
+Google	Google	Google	Google
+AdGuard DNS	AdGuard DNS	AdGuard DNS	AdGuard DNS
+Red · DNS	Network · DNS	Réseau · DNS	Netzwerk · DNS
+AdGuard Home está activo: las consultas pasan por AdGuard; los servidores de abajo se usan solo si lo apagás.	AdGuard Home is active: queries go through AdGuard; the servers below are only used if you turn it off.	AdGuard Home est actif : les requêtes passent par AdGuard ; les serveurs ci-dessous ne servent que si vous le désactivez.	AdGuard Home ist aktiv: Anfragen laufen über AdGuard; die Server unten werden nur genutzt, wenn Sie es ausschalten.
+DNS manuales	Manual DNS	DNS manuels	Manuelle DNS-Server
+Si está apagado se usan los que entrega la WAN	When off, the ones provided by the WAN are used	Si désactivé, ceux fournis par le WAN sont utilisés	Wenn aus, werden die vom WAN gelieferten verwendet
+Servidores	Servers	Serveurs	Server
+Protección contra DNS rebinding	DNS rebinding protection	Protection contre le DNS rebinding	Schutz vor DNS-Rebinding
+Forzar el DNS del router	Force the router DNS	Forcer le DNS du routeur	Router-DNS erzwingen
+Redirige al router las consultas DNS de la LAN dirigidas a otros servidores	Redirects LAN DNS queries aimed at other servers to the router	Redirige vers le routeur les requêtes DNS du LAN destinées à d'autres serveurs	Leitet DNS-Anfragen aus dem LAN an andere Server auf den Router um
+Red · UPnP	Network · UPnP	Réseau · UPnP	Netzwerk · UPnP
+Modo seguro	Secure mode	Mode sécurisé	Sicherer Modus
+Cada dispositivo solo puede abrir puertos hacia sí mismo	Each device can only open ports to itself	Chaque appareil ne peut ouvrir des ports que vers lui-même	Jedes Gerät kann nur Ports zu sich selbst öffnen
+Permite que consolas y aplicaciones abran puertos automáticamente. Con doble NAT solo abre puertos en este router.	Lets consoles and apps open ports automatically. With double NAT it only opens ports on this router.	Permet aux consoles et applications d'ouvrir des ports automatiquement. En double NAT, seuls les ports de ce routeur sont ouverts.	Erlaubt Konsolen und Apps, Ports automatisch zu öffnen. Bei doppeltem NAT nur an diesem Router.
+Red · QoS (SQM)	Network · QoS (SQM)	Réseau · QoS (SQM)	Netzwerk · QoS (SQM)
+Mbps	Mbps	Mbit/s	Mbit/s
+Control de cola inteligente	Smart queue management	Gestion intelligente des files d'attente	Intelligentes Warteschlangenmanagement
+Bajada (Mbps)	Download (Mbps)	Descendant (Mbit/s)	Download (Mbit/s)
+Subida (Mbps)	Upload (Mbps)	Montant (Mbit/s)	Upload (Mbit/s)
+SQM (cake) reduce la latencia cuando la conexión está saturada (videollamadas y juegos mientras se descarga). Poné ~90 % de tu velocidad real medida (ver Sistema › Diagnóstico › Test de velocidad).	SQM (cake) reduces latency when the link is saturated (video calls and games while downloading). Set ~90 % of your real measured speed (see System › Diagnostics › Speed test).	SQM (cake) réduit la latence quand la connexion est saturée (visios et jeux pendant un téléchargement). Indiquez ~90 % de votre débit réel mesuré (voir Système › Diagnostic › Test de débit).	SQM (cake) senkt die Latenz bei ausgelasteter Leitung (Videoanrufe und Spiele während Downloads). Tragen Sie ~90 % Ihrer real gemessenen Geschwindigkeit ein (siehe System › Diagnose › Geschwindigkeitstest).
+Completá las velocidades	Fill in the speeds	Renseignez les débits	Bitte Geschwindigkeiten angeben
+Red · IPv6	Network · IPv6	Réseau · IPv6	Netzwerk · IPv6
+Activar IPv6	Enable IPv6	Activer l'IPv6	IPv6 aktivieren
+Direcciones WAN	WAN addresses	Adresses WAN	WAN-Adressen
+Direcciones LAN	LAN addresses	Adresses LAN	LAN-Adressen
+Red · Avanzado	Network · Advanced	Réseau · Avancé	Netzwerk · Erweitert
+Rendimiento	Performance	Performances	Leistung
+Aceleración (flow offloading)	Acceleration (flow offloading)	Accélération (flow offloading)	Beschleunigung (Flow Offloading)
+Las conexiones establecidas saltean parte del firewall: más rendimiento con menos CPU	Established connections skip part of the firewall: more throughput with less CPU	Les connexions établies contournent une partie du pare-feu : plus de débit avec moins de CPU	Bestehende Verbindungen umgehen einen Teil der Firewall: mehr Durchsatz bei weniger CPU-Last
+Distribuir paquetes entre CPUs	Spread packets across CPUs	Répartir les paquets entre les CPU	Pakete auf CPUs verteilen
+IGMP snooping (multicast/IPTV)	IGMP snooping (multicast/IPTV)	IGMP snooping (multicast/IPTV)	IGMP-Snooping (Multicast/IPTV)
+Interfaces, VLAN, rutas estáticas y más:	Interfaces, VLANs, static routes and more:	Interfaces, VLAN, routes statiques et plus :	Schnittstellen, VLANs, statische Routen und mehr:
+Red en LuCI ↗	Network in LuCI ↗	Réseau dans LuCI ↗	Netzwerk in LuCI ↗
+Sistema · Resumen	System · Overview	Système · Aperçu	System · Übersicht
+Modelo	Model	Modèle	Modell
+Firmware	Firmware	Firmware	Firmware
+Kernel	Kernel	Noyau	Kernel
+Tiempo encendido	Uptime	Temps de fonctionnement	Laufzeit
+Hora del router	Router time	Heure du routeur	Router-Zeit
+Carga	Load	Charge	Last
+{0} usados de {1}	{0} used of {1}	{0} utilisés sur {1}	{0} von {1} belegt
+MAC WAN	WAN MAC	MAC WAN	WAN-MAC
+MAC LAN	LAN MAC	MAC LAN	LAN-MAC
+Reiniciar	Reboot	Redémarrer	Neu starten
+¿Reiniciar el router ahora? Se corta la conexión por un minuto.	Reboot the router now? The connection drops for about a minute.	Redémarrer le routeur maintenant ? La connexion sera coupée environ une minute.	Router jetzt neu starten? Die Verbindung ist etwa eine Minute unterbrochen.
+Reiniciando…	Rebooting…	Redémarrage…	Neustart…
+Nombre del router	Router name	Nom du routeur	Router-Name
+Sistema · Actualizar firmware	System · Firmware upgrade	Système · Mise à jour du firmware	System · Firmware-Update
+Subiendo {0} ({1})…	Uploading {0} ({1})…	Envoi de {0} ({1})…	{0} wird hochgeladen ({1})…
+Falló la subida ({0})	Upload failed ({0})	Échec de l'envoi ({0})	Hochladen fehlgeschlagen ({0})
+Imagen inválida	Invalid image	Image invalide	Ungültiges Image
+Archivo	File	Fichier	Datei
+Tamaño	Size	Taille	Größe
+Conservar la configuración	Keep settings	Conserver la configuration	Einstellungen beibehalten
+Instalar	Install	Installer	Installieren
+Instalar firmware	Install firmware	Installer le firmware	Firmware installieren
+El router se reinicia y no debe apagarse durante el proceso (2-3 minutos).	The router reboots and must not be powered off during the process (2-3 minutes).	Le routeur redémarre et ne doit pas être éteint pendant l'opération (2-3 minutes).	Der Router startet neu und darf währenddessen nicht ausgeschaltet werden (2–3 Minuten).
+Instalando firmware… no apagues el equipo.	Installing firmware… do not power off the device.	Installation du firmware… n'éteignez pas l'appareil.	Firmware wird installiert… Gerät nicht ausschalten.
+Actualización manual	Manual upgrade	Mise à jour manuelle	Manuelles Update
+Versión actual	Current version	Version actuelle	Aktuelle Version
+Subí una imagen «squashfs-combined-efi.img.gz» de MyOwnRouter (o de OpenWrt x86/64). En una VM también podés tomar un snapshot antes desde el hipervisor.	Upload a MyOwnRouter "squashfs-combined-efi.img.gz" image (or an OpenWrt x86/64 one). In a VM you can also take a snapshot from the hypervisor first.	Envoyez une image « squashfs-combined-efi.img.gz » de MyOwnRouter (ou d'OpenWrt x86/64). Dans une VM, vous pouvez aussi prendre un instantané depuis l'hyperviseur avant.	Laden Sie ein MyOwnRouter-Image „squashfs-combined-efi.img.gz“ hoch (oder eines von OpenWrt x86/64). In einer VM können Sie vorher auch einen Snapshot im Hypervisor anlegen.
+Elegir archivo de firmware…	Choose firmware file…	Choisir le fichier firmware…	Firmware-Datei wählen…
+Sistema · Tareas programadas	System · Scheduled tasks	Système · Tâches planifiées	System · Geplante Aufgaben
+Reiniciar el router	Reboot the router	Redémarrer le routeur	Router neu starten
+Apagar WiFi	Turn Wi-Fi off	Éteindre le Wi-Fi	WLAN ausschalten
+Encender WiFi	Turn Wi-Fi on	Allumer le Wi-Fi	WLAN einschalten
+Todos los días	Every day	Tous les jours	Täglich
+Nueva tarea	New task	Nouvelle tâche	Neue Aufgabe
+Acción	Action	Action	Aktion
+Hora	Time	Heure	Uhrzeit
+Tareas	Tasks	Tâches	Aufgaben
+Sin tareas	No tasks	Aucune tâche	Keine Aufgaben
+Agregar tarea	Add task	Ajouter une tâche	Aufgabe hinzufügen
+Sistema · Fecha y hora	System · Date and time	Système · Date et heure	System · Datum und Uhrzeit
+Zona horaria	Time zone	Fuseau horaire	Zeitzone
+Sincronizar por NTP	Sync via NTP	Synchroniser par NTP	Per NTP synchronisieren
+Servidores NTP	NTP servers	Serveurs NTP	NTP-Server
+Sistema · Registros	System · Logs	Système · Journaux	System · Protokolle
+(vacío)	(empty)	(vide)	(leer)
+Registros	Logs	Journaux	Protokolle
+Descargar	Download	Télécharger	Herunterladen
+Sistema · Diagnóstico	System · Diagnostics	Système · Diagnostic	System · Diagnose
+Ping	Ping	Ping	Ping
+Traceroute	Traceroute	Traceroute	Traceroute
+Nslookup	Nslookup	Nslookup	Nslookup
+Bajada	Download	Descendant	Download
+Subida	Upload	Montant	Upload
+Latencia	Latency	Latence	Latenz
+Midiendo… (unos 30 segundos)	Measuring… (about 30 seconds)	Mesure en cours… (environ 30 secondes)	Messung läuft… (ca. 30 Sekunden)
+Sin mediciones.	No measurements.	Aucune mesure.	Keine Messungen.
+Herramientas de red	Network tools	Outils réseau	Netzwerk-Werkzeuge
+Ejecutar	Run	Exécuter	Ausführen
+Ejecutando…	Running…	Exécution…	Wird ausgeführt…
+Test de velocidad	Speed test	Test de débit	Geschwindigkeitstest
+Iniciar	Start	Démarrer	Starten
+Sistema · Seguridad	System · Security	Système · Sécurité	System · Sicherheit
+Actual	Current	Actuel	Aktuell
+Nueva	New	Nouveau	Neu
+Repetir	Repeat	Répéter	Wiederholen
+Cambiar contraseña	Change password	Changer le mot de passe	Passwort ändern
+La contraseña actual es incorrecta	The current password is wrong	Le mot de passe actuel est incorrect	Das aktuelle Passwort ist falsch
+Servidor SSH	SSH server	Serveur SSH	SSH-Server
+Permitir contraseña	Allow password	Autoriser le mot de passe	Passwort erlauben
+Si lo apagás, solo con clave pública (cargala en LuCI › Sistema › Administración)	If off, public key only (add it in LuCI › System › Administration)	Si désactivé, clé publique uniquement (ajoutez-la dans LuCI › Système › Administration)	Wenn aus, nur mit öffentlichem Schlüssel (in LuCI › System › Administration hinterlegen)
+Sistema · Restablecer	System · Reset	Système · Réinitialisation	System · Zurücksetzen
+Restablecer a valores de fábrica	Reset to factory defaults	Rétablir les paramètres d'usine	Auf Werkseinstellungen zurücksetzen
+Borra toda la configuración (WiFi, VPN, reglas, contraseña) y reinicia. Después vas a entrar por la LAN en http://192.168.20.1 o por la IP WAN que asigne el router principal, y se vuelve a mostrar el asistente inicial.	Erases all settings (Wi-Fi, VPN, rules, password) and reboots. Afterwards you get in through the LAN at http://192.168.20.1 or through the WAN IP assigned by the main router, and the setup wizard is shown again.	Efface toute la configuration (Wi-Fi, VPN, règles, mot de passe) et redémarre. Vous accéderez ensuite par le LAN sur http://192.168.20.1 ou par l'IP WAN attribuée par le routeur principal, et l'assistant initial s'affichera de nouveau.	Löscht alle Einstellungen (WLAN, VPN, Regeln, Passwort) und startet neu. Danach erreichen Sie den Router über das LAN unter http://192.168.20.1 oder über die vom Hauptrouter vergebene WAN-IP, und der Einrichtungsassistent erscheint erneut.
+Restablecer	Reset	Réinitialiser	Zurücksetzen
+Se borra toda la configuración. ¿Continuar?	All settings will be erased. Continue?	Toute la configuration sera effacée. Continuer ?	Alle Einstellungen werden gelöscht. Fortfahren?
+Restableciendo y reiniciando…	Resetting and rebooting…	Réinitialisation et redémarrage…	Zurücksetzen und Neustart…
+Panel VPN	VPN dashboard	Tableau de bord VPN	VPN-Übersicht
+Clientes VPN	VPN clients	Clients VPN	VPN-Clients
+Aplicaciones	Applications	Applications	Anwendungen
+Complementos	Plug-ins	Extensions	Erweiterungen
+Almacenamiento en red	Network storage	Stockage réseau	Netzwerkspeicher
+Control parental	Parental control	Contrôle parental	Kindersicherung
+LAN y DHCP	LAN and DHCP	LAN et DHCP	LAN und DHCP
+Reenvío de puertos	Port forwarding	Redirection de ports	Portweiterleitung
+Firewall	Firewall	Pare-feu	Firewall
+Avanzado	Advanced	Avancé	Erweitert
+Resumen	Overview	Aperçu	Übersicht
+Actualizar firmware	Firmware upgrade	Mise à jour du firmware	Firmware-Update
+Tareas programadas	Scheduled tasks	Tâches planifiées	Geplante Aufgaben
+Fecha y hora	Date and time	Date et heure	Datum und Uhrzeit
+Diagnóstico	Diagnostics	Diagnostic	Diagnose
+Configuración avanzada	Advanced settings	Configuration avancée	Erweiterte Einstellungen
+No hay radio WiFi	No Wi-Fi radio	Pas de radio Wi-Fi	Kein WLAN-Funkmodul
+SSID inválido	Invalid SSID	SSID invalide	Ungültige SSID
+La contraseña WiFi debe tener entre 8 y 63 caracteres	The Wi-Fi password must be 8 to 63 characters long	Le mot de passe Wi-Fi doit contenir de 8 à 63 caractères	Das WLAN-Passwort muss 8 bis 63 Zeichen lang sein
+Seguridad inválida	Invalid security	Sécurité invalide	Ungültige Sicherheit
+Banda inválida	Invalid band	Bande invalide	Ungültiges Band
+Ancho inválido	Invalid width	Largeur invalide	Ungültige Breite
+Canal inválido	Invalid channel	Canal invalide	Ungültiger Kanal
+La contraseña de invitados debe tener entre 8 y 63 caracteres	The guest password must be 8 to 63 characters long	Le mot de passe invités doit contenir de 8 à 63 caractères	Das Gastpasswort muss 8 bis 63 Zeichen lang sein
+Falta la contraseña de invitados	The guest password is missing	Le mot de passe invités est manquant	Das Gastpasswort fehlt
+La contraseña de invitados debe ser distinta de la principal	The guest password must differ from the main one	Le mot de passe invités doit être différent du principal	Das Gastpasswort muss sich vom Hauptpasswort unterscheiden
+Ya está configurado	Already configured	Déjà configuré	Bereits eingerichtet
+La contraseña de administrador debe tener al menos 8 caracteres	The administrator password must be at least 8 characters long	Le mot de passe administrateur doit contenir au moins 8 caractères	Das Administratorpasswort muss mindestens 8 Zeichen lang sein
+No se pudo establecer la contraseña	The password could not be set	Impossible de définir le mot de passe	Das Passwort konnte nicht gesetzt werden
+MAC inválida	Invalid MAC	MAC invalide	Ungültige MAC
+IP inválida	Invalid IP	IP invalide	Ungültige IP
+Falta el SSID	SSID is missing	SSID manquant	SSID fehlt
+Cifrado inválido	Invalid encryption	Chiffrement invalide	Ungültige Verschlüsselung
+Contraseña inválida	Invalid password	Mot de passe invalide	Ungültiges Passwort
+Nombre inválido (letras, números y _; máx. 15)	Invalid name (letters, digits and _; max. 15)	Nom invalide (lettres, chiffres et _ ; 15 max.)	Ungültiger Name (Buchstaben, Ziffern und _; max. 15)
+Configuración WireGuard inválida	Invalid WireGuard configuration	Configuration WireGuard invalide	Ungültige WireGuard-Konfiguration
+Ya existe	Already exists	Existe déjà	Existiert bereits
+Archivo .ovpn inválido	Invalid .ovpn file	Fichier .ovpn invalide	Ungültige .ovpn-Datei
+Tipo inválido	Invalid type	Type invalide	Ungültiger Typ
+ID inválido	Invalid ID	ID invalide	Ungültige ID
+Modo inválido	Invalid mode	Mode invalide	Ungültiger Modus
+Subred inválida	Invalid subnet	Sous-réseau invalide	Ungültiges Subnetz
+Nombre inválido	Invalid name	Nom invalide	Ungültiger Name
+Primero configurá el servidor	Set up the server first	Configurez d'abord le serveur	Richten Sie zuerst den Server ein
+Sin direcciones libres	No free addresses	Aucune adresse libre	Keine freien Adressen
+No existe	Does not exist	N'existe pas	Existiert nicht
+No se subió ningún archivo	No file was uploaded	Aucun fichier envoyé	Es wurde keine Datei hochgeladen
+Host inválido	Invalid host	Hôte invalide	Ungültiger Host
+Herramienta inválida	Invalid tool	Outil invalide	Ungültiges Werkzeug
+Inválido	Invalid	Invalide	Ungültig
+El ID de red debe tener 16 caracteres hexadecimales	The network ID must be 16 hexadecimal characters	L'ID de réseau doit comporter 16 caractères hexadécimaux	Die Netzwerk-ID muss aus 16 Hexadezimalzeichen bestehen
+IPs de verificación inválidas	Invalid check IPs	IP de vérification invalides	Ungültige Prüf-IPs
+La imagen no es válida para este equipo	The image is not valid for this device	L'image n'est pas valide pour cet appareil	Das Image ist für dieses Gerät nicht gültig
+auto	auto	auto	auto
+Error {0} en {1}	Error {0} in {1}	Erreur {0} dans {1}	Fehler {0} in {1}

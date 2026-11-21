@@ -28,6 +28,6 @@ uci -q add_list nlbwmon.@nlbwmon[0].local_network='guest'
 uci -q commit nlbwmon
 
 # LuCI sigue disponible en /cgi-bin/luci ("Configuración avanzada")
-uci -q set luci.main.lang='es'
+uci -q set luci.main.lang='auto'
 uci -q commit luci
 exit 0

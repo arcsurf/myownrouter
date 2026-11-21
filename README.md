@@ -7,7 +7,9 @@ for advanced settings.
 
 ## Features
 
-Web UI (Spanish) served at `/`, talking to `rpcd` over `/ubus`; LuCI stays available at `/cgi-bin/luci` as *advanced settings*.
+Web UI served at `/`, talking to `rpcd` over `/ubus`; LuCI stays available at `/cgi-bin/luci` as *advanced settings*.
+
+Languages: **English, Español, Français, Deutsch** — chosen on the login page or in the top bar (defaults to the browser language). Switching it while signed in also switches LuCI.
 
 | Area | What you get |
 |------|--------------|
@@ -75,6 +77,14 @@ without rebuilding. Layout:
 - `files/usr/share/rpcd/ucode/myownrouter` — ubus backend (`ubus -v list myownrouter`)
 - `files/usr/share/rpcd/acl.d/myownrouter.json` — rpcd ACL
 - `files/etc/uci-defaults/` — first-boot configuration
+- `i18n/translations.tsv` — UI strings (es → en/fr/de); run `python3 tools/build_i18n.py` after editing to regenerate
+  `files/www/mor/i18n/*.js` (it also fails if a string used in the code has no translation or a `{0}` placeholder is lost)
+
+### Translations
+
+Spanish is the source language: the UI calls `t('texto', ...args)`. To add a string, wrap it with `t()`, add a row to
+`i18n/translations.tsv` and run the build script. To add a language, add a column to the TSV, its code to `LANGS` in
+`tools/build_i18n.py` and to `LANGS` in `files/www/mor/core.js`.
 
 ## License
 

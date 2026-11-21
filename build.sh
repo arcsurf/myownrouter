@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 IB=build/openwrt-imagebuilder-25.12.6-x86-64.Linux-x86_64
 
 PKGS="
- luci luci-i18n-base-es luci-i18n-firewall-es luci-app-firewall
+ luci luci-app-firewall luci-i18n-base-es luci-i18n-firewall-es luci-i18n-base-fr luci-i18n-firewall-fr luci-i18n-base-de luci-i18n-firewall-de
  rpcd-mod-ucode rpcd-mod-iwinfo rpcd-mod-file ucode-mod-fs ucode-mod-uci ucode-mod-ubus
  kmod-igc kmod-mt7921e kmod-mt7921-firmware wpad-mbedtls iw wireless-regdb
  qemu-ga

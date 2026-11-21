@@ -2,6 +2,48 @@
 'use strict';
 
 const NULL_SID = '00000000000000000000000000000000';
+/* ------------------------------------------------------------------ i18n
+ * Spanish is the source language: t("texto") looks the string up in the
+ * dictionary of the active language (files /mor/i18n/<lang>.js, which do
+ * `MOR_I18N.<lang> = { 'texto': 'text', ... }`). {0}, {1}… are placeholders.
+ */
+const LANGS = [['es', 'Español'], ['en', 'English'], ['fr', 'Français'], ['de', 'Deutsch']];
+const MOR_I18N = {};
+const MOR_LANG = (() => {
+	const saved = localStorage.getItem('mor_lang');
+	if (saved && LANGS.some(l => l[0] === saved)) return saved;
+	const nav = (navigator.language || 'en').slice(0, 2).toLowerCase();
+	return LANGS.some(l => l[0] === nav) ? nav : 'en';
+})();
+
+// load the dictionary synchronously, before the page scripts register their titles
+if (MOR_LANG !== 'es') document.write('<script src="/mor/i18n/' + MOR_LANG + '.js?v=1"><\/script>');
+document.documentElement.lang = MOR_LANG;
+
+function t(s, ...args) {
+	const d = MOR_I18N[MOR_LANG];
+	let r = (d && d[s] != null) ? d[s] : s;
+	if (args.length) r = r.replace(/\{(\d+)\}/g, (m, i) => args[i] != null ? args[i] : '');
+	return r;
+}
+
+function langSelect(onchange) {
+	const s = document.createElement('select');
+	s.className = 'lang';
+	s.title = 'Language';
+	for (const [code, name] of LANGS) {
+		const o = document.createElement('option');
+		o.value = code; o.textContent = name; o.selected = code === MOR_LANG;
+		s.appendChild(o);
+	}
+	s.addEventListener('change', async () => {
+		localStorage.setItem('mor_lang', s.value);
+		if (onchange) { try { await onchange(s.value); } catch (e) { /* ignore */ } }
+		location.reload();
+	});
+	return s;
+}
+
 const MOR = {
 	sid: sessionStorage.getItem('mor_sid') || null,
 	pages: {},
@@ -93,9 +135,9 @@ function fmtRate(bps) {
 function fmtUptime(s) {
 	s = +s || 0;
 	const d = Math.floor(s / 86400), hh = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
-	if (d) return `${d} d ${hh} h ${m} min`;
-	if (hh) return `${hh} h ${m} min`;
-	return `${m} min ${Math.floor(s % 60)} s`;
+	if (d) return t('{0} d {1} h {2} min', d, hh, m);
+	if (hh) return t('{0} h {1} min', hh, m);
+	return t('{0} min {1} s', m, Math.floor(s % 60));
 }
 
 function bandName(b) { return { '2g': '2,4 GHz', '5g': '5 GHz', '6g': '6 GHz' }[b] || b; }
@@ -123,24 +165,25 @@ async function ubus(obj, method, args, sid) {
 			body: JSON.stringify({ jsonrpc: '2.0', id: ++rpcSeq, method: 'call', params: [sid || MOR.sid || NULL_SID, obj, method, args || {}] }),
 		});
 	} catch (e) {
-		throw new RpcError('Sin conexión con el router');
+		throw new RpcError(t('Sin conexión con el router'));
 	}
 	const j = await res.json().catch(() => null);
-	if (!j) throw new RpcError('Respuesta inválida del router');
+	if (!j) throw new RpcError(t('Respuesta inválida del router'));
 	if (j.error) {
 		if (j.error.code === -32002 && sid !== NULL_SID && obj !== 'session') { sessionExpired(); }
-		throw new RpcError(j.error.message || 'Error');
+		throw new RpcError(j.error.message || t('Error'));
 	}
 	const [code, data] = j.result;
-	if (code === 6 && obj !== 'session') { sessionExpired(); throw new RpcError('Sesión expirada'); }
-	if (code === 4) throw new RpcError('No encontrado');
-	if (code !== 0) throw new RpcError('Error ' + code + ' en ' + obj + '.' + method);
+	if (code === 6 && obj === 'session' && method === 'login') throw new RpcError(t('Contraseña incorrecta'));
+	if (code === 6 && obj !== 'session') { sessionExpired(); throw new RpcError(t('Sesión expirada')); }
+	if (code === 4) throw new RpcError(t('No encontrado'));
+	if (code !== 0) throw new RpcError(t('Error {0} en {1}', code, obj + '.' + method));
 	return data || {};
 }
 
 async function api(method, args) {
 	const r = await ubus('myownrouter', method, args);
-	if (r && r.ok === false) throw new RpcError(r.error || 'Error');
+	if (r && r.ok === false) throw new RpcError(t(r.error || 'Error'));
 	return r;
 }
 
@@ -165,7 +208,7 @@ const uci = {
 	set(config, section, values) { return ubus('uci', 'set', { config, section, values }); },
 	add(config, type, name, values) { return ubus('uci', 'add', name ? { config, type, name, values } : { config, type, values }); },
 	del(config, section, option) {
-		return ubus('uci', 'delete', option ? { config, section, option } : { config, section }).catch(e => { if (e.message !== 'No encontrado') throw e; });
+		return ubus('uci', 'delete', option ? { config, section, option } : { config, section }).catch(e => { if (e.message !== t('No encontrado')) throw e; });
 	},
 	commit(config) { return ubus('uci', 'commit', { config }); },
 	async save(config, section, values, apply) {
@@ -184,9 +227,9 @@ const uci = {
 function toast(msg, kind) {
 	let box = document.querySelector('.toasts');
 	if (!box) { box = h('div', { class: 'toasts' }); document.body.appendChild(box); }
-	const t = h('div', { class: 'toast ' + (kind || '') }, msg);
-	box.appendChild(t);
-	setTimeout(() => t.remove(), kind === 'err' ? 6000 : 3500);
+	const el = h('div', { class: 'toast ' + (kind || '') }, msg);
+	box.appendChild(el);
+	setTimeout(() => el.remove(), kind === 'err' ? 6000 : 3500);
 }
 
 function errToast(e) { toast(e && e.message ? e.message : String(e), 'err'); }
@@ -232,7 +275,7 @@ function input(value, attrs) {
 
 function password(value, attrs) {
 	const i = h('input', Object.assign({ type: 'password', value: value ?? '', autocomplete: 'new-password' }, attrs || {}));
-	const b = h('button', { type: 'button', title: 'Mostrar', onclick: () => { i.type = i.type === 'password' ? 'text' : 'password'; } }, icon('eye'));
+	const b = h('button', { type: 'button', title: t('Mostrar'), onclick: () => { i.type = i.type === 'password' ? 'text' : 'password'; } }, icon('eye'));
 	const w = h('div', { class: 'pw' }, i, b);
 	Object.defineProperty(w, 'value', { get: () => i.value, set: (v) => { i.value = v; } });
 	w.input = i;
@@ -271,11 +314,11 @@ function kv(pairs) {
 }
 
 function table(cols, rows, emptyText) {
-	const t = h('table', { class: 't' },
+	const tbl = h('table', { class: 't' },
 		h('thead', h('tr', cols.map(c => h('th', c)))),
 		h('tbody', rows.length ? rows.map(r => h('tr', r.map((c, i) => h('td', i === r.length - 1 && cols[i] === '' ? { class: 'actions' } : null, c))))
-			: h('tr', h('td', { colspan: cols.length, class: 'empty' }, emptyText || 'Sin elementos'))));
-	return h('div', { class: 'table-wrap' }, t);
+			: h('tr', h('td', { colspan: cols.length, class: 'empty' }, emptyText || t('Sin elementos')))));
+	return h('div', { class: 'table-wrap' }, tbl);
 }
 
 function modal(title, body, buttons, opts) {
@@ -283,7 +326,7 @@ function modal(title, body, buttons, opts) {
 		const close = (v) => { ov.remove(); document.removeEventListener('keydown', esc); resolve(v); };
 		const esc = (e) => { if (e.key === 'Escape') close(null); };
 		const foot = h('div', { class: 'modal-foot' });
-		for (const b of buttons || [['Cerrar', null]]) {
+		for (const b of buttons || [[t('Cerrar'), null]]) {
 			const [label, fn, cls] = b;
 			foot.appendChild(btn(label, async () => {
 				if (!fn) return close(null);
@@ -303,14 +346,14 @@ function modal(title, body, buttons, opts) {
 }
 
 function confirmDlg(title, text, okLabel, danger) {
-	return modal(title, h('p', { style: { margin: 0, lineHeight: 1.5 } }, text), [['Cancelar', null], [okLabel || 'Aceptar', () => true, danger ? 'primary danger' : 'primary']]);
+	return modal(title, h('p', { style: { margin: 0, lineHeight: 1.5 } }, text), [[t('Cancelar'), null], [okLabel || t('Aceptar'), () => true, danger ? 'primary danger' : 'primary']]);
 }
 
 function every(ms, fn) {
 	fn();
-	const t = setInterval(fn, ms);
-	MOR.timers.push(t);
-	return t;
+	const timer = setInterval(fn, ms);
+	MOR.timers.push(timer);
+	return timer;
 }
 
 function readFile(file) {
@@ -325,7 +368,7 @@ function fileButton(label, accept, onfile) {
 }
 
 function daysPicker(value) {
-	const names = [['Mon', 'Lu'], ['Tue', 'Ma'], ['Wed', 'Mi'], ['Thu', 'Ju'], ['Fri', 'Vi'], ['Sat', 'Sá'], ['Sun', 'Do']];
+	const names = [['Mon', t('Lu')], ['Tue', t('Ma')], ['Wed', t('Mi')], ['Thu', t('Ju')], ['Fri', t('Vi')], ['Sat', t('Sá')], ['Sun', t('Do')]];
 	const sel = (value || '').split(/[ ,]+/).filter(Boolean);
 	const boxes = names.map(([v, l]) => {
 		const c = h('input', { type: 'checkbox', value: v });
@@ -344,12 +387,12 @@ function sessionExpired() {
 	MOR.sid = null;
 	sessionStorage.removeItem('mor_sid');
 	stopTimers();
-	renderLogin('La sesión expiró, volvé a ingresar.');
+	renderLogin(t('La sesión expiró, volvé a ingresar.'));
 }
 
 async function login(pw) {
 	const r = await ubus('session', 'login', { username: 'root', password: pw, timeout: 4 * 3600 }, NULL_SID);
-	if (!r.ubus_rpc_session) throw new RpcError('Contraseña incorrecta');
+	if (!r.ubus_rpc_session) throw new RpcError(t('Contraseña incorrecta'));
 	MOR.sid = r.ubus_rpc_session;
 	sessionStorage.setItem('mor_sid', MOR.sid);
 }
@@ -374,29 +417,30 @@ async function renderLogin(msg) {
 	let st = {};
 	try { st = await ubus('myownrouter', 'state', {}, NULL_SID); } catch (e) { /* router unreachable */ }
 	if (st.needs_setup) return renderWelcome(st);
-	const pw = password('', { placeholder: 'Contraseña de administrador', autocomplete: 'current-password' });
+	const pw = password('', { placeholder: t('Contraseña de administrador'), autocomplete: 'current-password' });
 	const err = h('div', { class: 'err' }, msg || '');
 	const go = async () => {
 		err.textContent = '';
 		try { await login(pw.value); boot(); }
-		catch (e) { err.textContent = e.message === 'Access denied' || e.message === 'Contraseña incorrecta' ? 'Contraseña incorrecta' : e.message; }
+		catch (e) { err.textContent = e.message === 'Access denied' || e.message === t('Contraseña incorrecta') ? t('Contraseña incorrecta') : e.message; }
 	};
 	pw.input.addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
 	app.replaceChildren(h('div', { class: 'login' }, h('div', { class: 'box' },
+		h('div', { class: 'login-lang' }, langSelect()),
 		h('img', { src: '/mor/logo.svg', alt: '' }),
 		h('h1', st.hostname || 'MyOwnRouter'),
-		h('p', { class: 'sub' }, 'Ingresá la contraseña de administrador'),
-		h('div', { class: 'form' }, pw, err, btn('Iniciar sesión', go, 'primary')),
+		h('p', { class: 'sub' }, t('Ingresá la contraseña de administrador')),
+		h('div', { class: 'form' }, pw, err, btn(t('Iniciar sesión'), go, 'primary')),
 	)));
 	setTimeout(() => pw.input.focus(), 50);
 }
 
 function renderWelcome(st) {
 	const app = document.getElementById('app');
-	const p1 = password('', { placeholder: 'Mínimo 8 caracteres' });
-	const p2 = password('', { placeholder: 'Repetir contraseña' });
-	const ssid = input('', { placeholder: 'Nombre de la red WiFi', maxLength: 32 });
-	const key = password('', { placeholder: 'Mínimo 8 caracteres' });
+	const p1 = password('', { placeholder: t('Mínimo 8 caracteres') });
+	const p2 = password('', { placeholder: t('Repetir contraseña') });
+	const ssid = input('', { placeholder: t('Nombre de la red WiFi'), maxLength: 32 });
+	const key = password('', { placeholder: t('Mínimo 8 caracteres') });
 	const err = h('div', { class: 'err' });
 	const body = h('div');
 	const box = h('div', { class: 'box' });
@@ -405,18 +449,18 @@ function renderWelcome(st) {
 	const show = () => {
 		err.textContent = '';
 		if (step === 1) {
-			body.replaceChildren(steps(), h('h1', 'Bienvenido'), h('p', { class: 'sub' }, 'Elegí la contraseña de administrador del router'),
-				h('div', { class: 'form' }, field('Contraseña', p1), field('Confirmar', p2), err,
-					btn('Siguiente', () => {
-						if (p1.value.length < 8) { err.textContent = 'Debe tener al menos 8 caracteres'; return; }
-						if (p1.value !== p2.value) { err.textContent = 'Las contraseñas no coinciden'; return; }
+			body.replaceChildren(steps(), h('h1', t('Bienvenido')), h('p', { class: 'sub' }, t('Elegí la contraseña de administrador del router')),
+				h('div', { class: 'form' }, field(t('Contraseña'), p1), field(t('Confirmar'), p2), err,
+					btn(t('Siguiente'), () => {
+						if (p1.value.length < 8) { err.textContent = t('Debe tener al menos 8 caracteres'); return; }
+						if (p1.value !== p2.value) { err.textContent = t('Las contraseñas no coinciden'); return; }
 						step = 2; show();
 					}, 'primary')));
 		} else {
-			body.replaceChildren(steps(), h('h1', 'Red WiFi'), h('p', { class: 'sub' }, 'Configurá la red inalámbrica principal (podés cambiarla después)'),
-				h('div', { class: 'form' }, field('Nombre (SSID)', ssid), field('Contraseña WiFi', key), err,
-					btn('Finalizar', async () => {
-						if (ssid.value && key.value.length < 8) { err.textContent = 'La contraseña WiFi debe tener al menos 8 caracteres'; return; }
+			body.replaceChildren(steps(), h('h1', t('Red WiFi')), h('p', { class: 'sub' }, t('Configurá la red inalámbrica principal (podés cambiarla después)')),
+				h('div', { class: 'form' }, field(t('Nombre (SSID)'), ssid), field(t('Contraseña WiFi'), key), err,
+					btn(t('Finalizar'), async () => {
+						if (ssid.value && key.value.length < 8) { err.textContent = t('La contraseña WiFi debe tener al menos 8 caracteres'); return; }
 						try {
 							await login('');
 							await api('setup', { password: p1.value, ssid: ssid.value, key: key.value });
@@ -426,10 +470,10 @@ function renderWelcome(st) {
 							boot();
 						} catch (e) { err.textContent = e.message; }
 					}, 'primary'),
-					h('button', { class: 'btn', type: 'button', onclick: () => { step = 1; show(); } }, 'Atrás')));
+					h('button', { class: 'btn', type: 'button', onclick: () => { step = 1; show(); } }, t('Atrás'))));
 		}
 	};
-	box.append(h('img', { src: '/mor/logo.svg', alt: '' }), body);
+	box.append(h('div', { class: 'login-lang' }, langSelect()), h('img', { src: '/mor/logo.svg', alt: '' }), body);
 	app.replaceChildren(h('div', { class: 'login' }, box));
 	show();
 }
@@ -451,9 +495,9 @@ function renderLayout() {
 		}
 		const grp = h('div', { class: 'nav-group' },
 			h('div', { class: 'nav-head', onclick: () => grp.classList.toggle('open') }, icon(g.icon), g.title, icon('chev', 'chev')),
-			h('div', { class: 'nav-sub' }, g.items.map(([p, t, ext]) => ext
-				? h('a', { href: p, target: '_blank', rel: 'noopener' }, t, ' ↗')
-				: h('a', { href: '#' + p, 'data-path': p }, t))));
+			h('div', { class: 'nav-sub' }, g.items.map(([p, label, ext]) => ext
+				? h('a', { href: p, target: '_blank', rel: 'noopener' }, label, ' ↗')
+				: h('a', { href: '#' + p, 'data-path': p }, label))));
 		nav.appendChild(grp);
 	}
 	const layout = h('div', { class: 'layout' },
@@ -467,7 +511,8 @@ function renderLayout() {
 				h('h1', { id: 'page-title' }, ''),
 				h('div', { class: 'spacer' }),
 				h('span', { id: 'net-pill' }),
-				btn('Salir', logout, 'sm', 'logout')),
+				langSelect((l) => uci.save('luci', 'main', { lang: l })),
+				btn(t('Salir'), logout, 'sm', 'logout')),
 			h('main', { class: 'content', id: 'content' })));
 	app.replaceChildren(layout);
 	MOR.layout = layout;
@@ -480,7 +525,7 @@ async function navigate() {
 	if (!MOR.pages[path]) path = '/home';
 	const pg = MOR.pages[path];
 	document.getElementById('page-title').textContent = pg.title;
-	document.title = pg.title + ' · MyOwnRouter';
+	document.title = pg.title + t(' · MyOwnRouter');
 	MOR.layout.classList.remove('menu-open');
 	document.querySelectorAll('.nav a[data-path]').forEach(a => a.classList.toggle('active', a.dataset.path === path));
 	document.querySelectorAll('.nav-group').forEach(g => {
@@ -489,12 +534,12 @@ async function navigate() {
 		if (act) g.classList.add('open');
 	});
 	const c = document.getElementById('content');
-	c.replaceChildren(h('div', { class: 'muted' }, 'Cargando…'));
+	c.replaceChildren(h('div', { class: 'muted' }, t('Cargando…')));
 	try {
 		const node = await pg.render();
 		c.replaceChildren(...(Array.isArray(node) ? node : [node]));
 	} catch (e) {
-		c.replaceChildren(card('Error', note(e.message || String(e), 'err')));
+		c.replaceChildren(card(t('Error'), note(e.message || String(e), 'err')));
 	}
 	window.scrollTo(0, 0);
 }
@@ -504,11 +549,11 @@ async function refreshPill() {
 		const s = await api('status');
 		MOR.state.status = s;
 		const pill = document.getElementById('net-pill');
-		if (pill) pill.replaceChildren(s.internet.online ? badge('● Conectado a internet', 'ok') : badge('● Sin internet', 'err'));
+		if (pill) pill.replaceChildren(s.internet.online ? badge(t('● Conectado a internet'), 'ok') : badge(t('● Sin internet'), 'err'));
 		const sub = document.getElementById('brand-sub');
 		if (sub) sub.textContent = s.system.release ? s.system.release.replace(/^OpenWrt /, 'OpenWrt ').replace(/ r\d.*$/, '') : '';
 		const foot = document.getElementById('side-foot');
-		if (foot) foot.textContent = 'LAN ' + (s.lan && s.lan.ipaddr || '') + ' · ' + (s.system.hostname || '');
+		if (foot) foot.textContent = 'LAN ' + (s.lan && s.lan.ipaddr || '') + t(' · ') + (s.system.hostname || '');
 	} catch (e) { /* ignore */ }
 }
 
@@ -527,7 +572,7 @@ async function boot() {
 async function waitForRouter(url, msg) {
 	const ov = h('div', { class: 'overlay' }, h('div', { class: 'modal' }, h('div', { class: 'modal-body', style: { textAlign: 'center', padding: '30px' } },
 		h('div', { class: 'spin', style: { width: '30px', height: '30px', border: '3px solid var(--accent)', borderRightColor: 'transparent', borderRadius: '50%', margin: '0 auto 16px', animation: 'spin .8s linear infinite' } }),
-		h('div', msg || 'Aplicando cambios…'))));
+		h('div', msg || t('Aplicando cambios…')))));
 	document.body.appendChild(ov);
 	const base = url || '';
 	await new Promise(r => setTimeout(r, 8000));
